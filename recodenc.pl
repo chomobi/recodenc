@@ -9,6 +9,7 @@ use v5.18;
 use warnings;
 use Tk;
 use Tk::LabFrame;
+use Tk::MsgBox;
 use Cwd;
 binmode(STDIN, ":utf8");
 binmode(STDOUT, ":utf8");
@@ -20,7 +21,8 @@ BEGIN {
 	}
 }
 
-my $version = 'v0.1.1';
+my $version = 'v0.2';
+my $status = ''; # переменная для вывода статуса
 # инициализация конфигурации
 my $cpflag = '1';
 my $c2flag = '0';
@@ -43,7 +45,7 @@ if (open(my $file_conf, '<:unix:perlio:utf8', $path)) {
 	close($file_conf);
 }
 # проверка загруженной конфигурации
-unless ($cpflag == 1 or $cpflag == 2) {$cpflag = 1}
+unless ($cpflag == 1 or $cpflag == 2 or $cpflag == 3) {$cpflag = 1}
 unless ($c2flag == 0 or $c2flag == 1) {$c2flag = 0}
 ## рисование интерфейса
 # инициализация переменных для хранения указателей на элементы интерфейса
@@ -52,15 +54,12 @@ my $mw; # главное окно
 my $frame_eu4; # рамка EU4
 my $frame_eu4_selcp; # фрейм с выбором кодировки
 my $frame_eu4_entry; # фрейм для текстового поля с первым каталогом
-my $te1; # текстовое поле с первым каталогом
 my $frame_eu4_entrysave; # фрейм для тектового поля со вторым каталогом
-my $te2; # текстовое поле со вторым каталогом
 my $frame_eu4_buttons; # фрейм с кнопками действий для перекодировки
+my $eu4_decode_button; # кнопка «декодировать»
 my $frame_eu4font; # рамка EU4 fnt
 my $frame_eu4font_entry; # фрейм для текстового поля с первым каталогом
-my $tef1; # текстовое поле с первым каталогом
 my $frame_eu4font_entrysave; # фрейм для тектового поля со вторым каталогом
-my $tef2; # текстовое поле со вторым каталогом
 my $frame_eu4font_button; # фрейм кнопки действия
 my $frame_ck2; # рамка CK2
 my $frame_buttons; # фрейм с кнопкой «закрыть»
@@ -71,38 +70,41 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 	$frame_eu4 = $mw -> LabFrame(-label => 'EU4');
 		# фрейм выбора кодировки
 		$frame_eu4_selcp = $frame_eu4 -> Frame;
-		$frame_eu4_selcp -> Radiobutton(-text => 'CP1251', -variable => \$cpflag, -value => '1') -> pack(-side => 'left');
-		$frame_eu4_selcp -> Radiobutton(-text => 'CP1252+CYR', -variable => \$cpflag, -value => '2') -> pack(-side => 'left');
+		$frame_eu4_selcp -> Radiobutton(-text => 'CP1251', -variable => \$cpflag, -value => '1', -command => \&valcp) -> pack(-side => 'left');
+		$frame_eu4_selcp -> Radiobutton(-text => 'CP1252+CYR', -variable => \$cpflag, -value => '2', -command => \&invcp) -> pack(-side => 'left');
+		$frame_eu4_selcp -> Radiobutton(-text => 'транслит', -variable => \$cpflag, -value => '3', -command => \&valcp) -> pack(-side => 'left');
+		$frame_eu4_selcp -> Button(-text => 'Таблица транслитерации', -command => \&translittable) -> pack(-side => 'right');
 		# фрейм каталога №1
 		$frame_eu4_entry = $frame_eu4 -> Frame;
-		$te1 = $frame_eu4_entry -> Entry(-width => '50', -validate => 'focus', -validatecommand => \&cval1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4_entry -> Button(-text => 'Выбрать каталог', -command => \&seldir) -> pack(-side => 'right');
+		$frame_eu4_entry -> Entry(-width => '50', -textvariable => \$catalogue1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
+		$frame_eu4_entry -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue1]) -> pack(-side => 'right');
 		# фрейм каталога №2
 		$frame_eu4_entrysave = $frame_eu4 -> Frame;
 		$frame_eu4_entrysave -> Checkbutton(-text => 'Сохранить в:', -variable => \$c2flag) -> pack(-side => 'left');
-		$te2 = $frame_eu4_entrysave -> Entry(-width => '50', -validate => 'focus', -validatecommand => \&cval2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4_entrysave -> Button(-text => 'Выбрать каталог', -command => \&seldir2) -> pack(-side => 'right');
+		$frame_eu4_entrysave -> Entry(-width => '50', -textvariable => \$catalogue2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
+		$frame_eu4_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue2]) -> pack(-side => 'right');
 		# фрейм кнопок
 		$frame_eu4_buttons = $frame_eu4 -> Frame;
-		$frame_eu4_buttons -> Button(-text => 'Кодировать', -command => sub {code(0)}) -> form(-left => '%0', -right => '%50');
-		$frame_eu4_buttons -> Button(-text => 'Декодировать', -command => sub {code(1)}) -> form(-left => '%50', -right => '%100');
+		$frame_eu4_buttons -> Button(-text => 'Кодировать', -command => [\&code => 0]) -> form(-left => '%0', -right => '%50');
+		$eu4_decode_button = $frame_eu4_buttons -> Button(-text => 'Декодировать', -command => [\&code => 1]) -> form(-left => '%50', -right => '%100');
 	# рамка EU4 fnt
 	$frame_eu4font = $mw -> LabFrame(-label => 'EU4 шрифты (fnt) для кодировки CP1252+CYR');
 		# фрейм каталога №1
 		$frame_eu4font_entry = $frame_eu4font -> Frame;
-		$tef1 = $frame_eu4font_entry -> Entry(-width => '50', -validate => 'focus', -validatecommand => \&cvalf1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4font_entry -> Button(-text => 'Выбрать каталог', -command => \&seldirf1) -> pack(-side => 'right');
+		$frame_eu4font_entry -> Entry(-width => '50', -textvariable => \$cataloguef1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
+		$frame_eu4font_entry -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef1]) -> pack(-side => 'right');
 		# фрейм каталога №2
 		$frame_eu4font_entrysave = $frame_eu4font ->Frame;
 		$frame_eu4font_entrysave -> Checkbutton(-text => 'Сохранить в:', -variable => \$cf2flag) -> pack(-side => 'left');
-		$tef2 = $frame_eu4font_entrysave -> Entry(-width => '50', -validate => 'focus', -validatecommand => \&cvalf2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4font_entrysave -> Button(-text => 'Выбрать каталог', -command => \&seldirf2) -> pack(-side => 'right');
+		$frame_eu4font_entrysave -> Entry(-width => '50', -textvariable => \$cataloguef2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
+		$frame_eu4font_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef2]) -> pack(-side => 'right');
 		# фрейм кнопки
 		$frame_eu4font_button = $frame_eu4font -> Frame;
 		$frame_eu4font_button -> Button(-text => 'Кодировать', -command => \&font) -> pack(-expand => '1', -fill => 'x', -side => 'left');
 	$frame_ck2 = $mw -> LabFrame(-label => 'CK2');
 	$frame_ck2 -> Label(-text => 'Поддержка CK2 запланирована.') -> pack(-side => 'left');
 	$frame_buttons = $mw -> Frame;
+	$frame_buttons -> Label(-anchor => 'w' ,-relief => 'flat', -textvariable => \$status) -> pack(-expand => '1', -fill => 'x', -side => 'left'); # строка статуса
 	$frame_buttons -> Button(-text => 'Закрыть', -command => [$mw => 'destroy']) -> pack(-side => 'right');
 # фреймы верхнего уровня
 $frame_eu4 -> form(-top => '%0', -left => '%0', -right => '%100');
@@ -119,10 +121,7 @@ $frame_eu4font_entry -> form(-top => '%0', -left => '%0', -right => '%100');
 $frame_eu4font_entrysave -> form(-top => $frame_eu4font_entry, -left => '%0', -right => '%100');
 $frame_eu4font_button -> form(-top => $frame_eu4font_entrysave, -left => '%0', -right => '%100');
 
-$te1 -> insert('0', $catalogue1);
-$te2 -> insert('0', $catalogue2);
-$tef1 -> insert('0', $cataloguef1);
-$tef2 -> insert('0', $cataloguef2);
+if ($cpflag == 2) {&invcp()};
 
 MainLoop;
 
@@ -143,24 +142,36 @@ close $file_conf_o;
 # ПОДПРОГРАММЫ #
 ################
 sub code { # перекодировка файлов
-	my $opfl = shift;
-	opendir(my $ch, $catalogue1) or invalid_dir(1);
+	my $opfl = shift;#0 — кодировка; 1 — декодировка
+	my $c2fl = $c2flag;#0 — перезаписать; 1 — сохранить в другое место
+	my $cpfl = $cpflag;#1 — CP1251; 2 — CP1252+CYR; 3 — транслит
+	my $dir1 = $catalogue1;#каталог №1
+	my $dir2 = $catalogue2;#каталог №2
+	# проверка параметров
+	unless (-d $dir1) {$status = 'Каталог с исходными данными не найден!'; return 1};
+	if ($c2fl == 1) {unless (-d $dir2) {$status = 'Каталог для сохранения не найден!'; return 1}};
+	# работа
+	$status = 'Обработка ...';
+	$mw -> Busy(-recurse => 1);
+	opendir(my $ch, $dir1);
 	my @files = grep { ! /^\.\.?\z/ } readdir $ch;
 	closedir($ch);
 	for (my $i = 0; $i < scalar(@files); $i++) {
-		open(my $file, '<:unix:perlio:utf8', "$catalogue1/$files[$i]");
+		unless (-T "$dir1/$files[$i]") {next}
+		open(my $file, '<:unix:perlio:utf8', "$dir1/$files[$i]");
 		my @strs;
 		push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
 		while (my $str = <$file>) {
 			chomp $str;
+			if ($str =~ m/\r$/) {$str =~ s/\r$//} # защита от идиотов, подающих на вход CRLF
 			if ($str =~ m/^\x{FEFF}/) {$str =~ s/^\x{FEFF}//} # удаление BOM из обрабатываемых строк
 			if ($str =~ m/^\#/) {push(@strs, "$str\n"); next}
 			if ($str =~ m/^ \#/) {push(@strs, "$str\n"); next}
 			if ($str =~ m/^$/) {push(@strs, "$str\n"); next}
 			if ($str =~ m/^ $/) {push(@strs, "$str\n"); next}
 			my @sps = split(/:/, $str, '2');
-			if    ($cpflag == 1 and $opfl == 0) {$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/}
-			elsif ($cpflag == 2 and $opfl == 0) {
+			if    ($cpfl == 1 and $opfl == 0) {$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/}
+			elsif ($cpfl == 2 and $opfl == 0) {
 				$sps[1] =~ s/€//g;
 				$sps[1] =~ s/‚/,/g;
 				$sps[1] =~ s/ƒ/f/g;
@@ -211,31 +222,42 @@ sub code { # перекодировка файлов
 				$sps[1] =~ s/÷//g;
 				$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
 			}
-			elsif ($cpflag == 1 and $opfl == 1) {$sps[1] =~ y/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
-			elsif ($cpflag == 2 and $opfl == 1) {$sps[1] =~ y/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
+			elsif ($cpfl == 3 and $opfl == 0) {$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ'ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/}
+			elsif ($cpfl == 1 and $opfl == 1) {$sps[1] =~ y/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
+#			elsif ($cpfl == 2 and $opfl == 1) {$sps[1] =~ y/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
+			elsif ($cpfl == 3 and $opfl == 1) {$sps[1] =~ y/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ'ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
 			push(@strs, "$sps[0]:$sps[1]\n");
 		}
 		close($file);
-		if ($c2flag == 0) {
-			open(my $out, '>:unix:perlio:utf8', "$catalogue1/$files[$i]");
+		if ($c2fl == 0) {
+			open(my $out, '>:unix:perlio:utf8', "$dir1/$files[$i]");
 			print $out @strs;
 			close $out;
 		}
-		elsif ($c2flag == 1) {
-			open(my $out, '>:unix:perlio:utf8', "$catalogue2/$files[$i]") or invalid_dir(2);
+		elsif ($c2fl == 1) {
+			open(my $out, '>:unix:perlio:utf8', "$dir2/$files[$i]");
 			print $out @strs;
 			close $out;
 		}
 	}
+	$mw -> Unbusy;
+	$status = 'Готово!';
 }
 
 sub font { # изменяет fnt-карты шрифтов
-#print "$cf2flag\n$cataloguef1\n$cataloguef2\n";
-	opendir(my $ch, $cataloguef1) or invalid_dir(3);
+	my $c2fl = $cf2flag;#0 — перезаписать; 1 — сохранить в другое место
+	my $dir1 = $cataloguef1;#каталог №1
+	my $dir2 = $cataloguef2;#каталог №2
+	unless (-d $dir1) {$status = 'Каталог с исходными данными не найден!'; return 1}
+	if ($c2fl == 1) {unless (-d $dir2) {$status = 'Каталог для сохранения не найден!'; return 1}}
+	$status = 'Обработка ...';
+	$mw -> Busy(-recurse => 1);
+	opendir(my $ch, $dir1);
 	my @files = grep { ! /^\.\.?\z/ } readdir $ch;
 	closedir($ch);
 	for (my $i = 0; $i < scalar(@files); $i++) {
-		open(my $file_in, '<:unix:crlf', "$cataloguef1/$files[$i]");
+		unless (-T "$dir1/$files[$i]") {next}
+		open(my $file_in, '<:unix:crlf', "$dir1/$files[$i]");
 		my @strs;
 		while (my $str = <$file_in>) {
 			chomp($str);
@@ -244,6 +266,7 @@ sub font { # изменяет fnt-карты шрифтов
 			}
 			if ($str =~ m/^info/) {
 				$str =~ s/size=-/size=/;
+				$str =~ s/ charset=""/ charset="ANSI"/;
 				$str =~ s/ unicode=.//;
 				$str =~ s/ outline=.//;
 				push(@strs, "$str\n"); next;
@@ -259,258 +282,249 @@ sub font { # изменяет fnt-карты шрифтов
 				next;
 			}
 			if ($str =~ m/^char/) {
-				$str =~ s/id=352/id=138/;
-				$str =~ s/id=353/id=154/;
-				$str =~ s/id=338/id=140/;
-				$str =~ s/id=339/id=156/;
-				$str =~ s/id=381/id=142/;
-				$str =~ s/id=382/id=158/;
-				$str =~ s/id=376/id=159/;
-				$str =~ s/id=1041/id=128/;
-				$str =~ s/id=1043/id=130/;
-				$str =~ s/id=1044/id=131/;
-				$str =~ s/id=1046/id=132/;
-				$str =~ s/id=1047/id=133/;
-				$str =~ s/id=1048/id=134/;
-				$str =~ s/id=1049/id=135/;
-				$str =~ s/id=1051/id=136/;
-				$str =~ s/id=1055/id=137/;
-				$str =~ s/id=1059/id=139/;
-				$str =~ s/id=1060/id=145/;
-				$str =~ s/id=1062/id=146/;
-				$str =~ s/id=1063/id=147/;
-				$str =~ s/id=1064/id=148/;
-				$str =~ s/id=1065/id=149/;
-				$str =~ s/id=1066/id=150/;
-				$str =~ s/id=1067/id=151/;
-				$str =~ s/id=1068/id=152/;
-				$str =~ s/id=1069/id=153/;
-				$str =~ s/id=1070/id=155/;
-				$str =~ s/id=1073/id=160/;
-				$str =~ s/id=1074/id=162/;
-				$str =~ s/id=1075/id=165/;
-				$str =~ s/id=1076/id=166/;
-				$str =~ s/id=1078/id=168/;
-				$str =~ s/id=1079/id=169/;
-				$str =~ s/id=1080/id=170/;
-				$str =~ s/id=1081/id=171/;
-				$str =~ s/id=1082/id=172/;
-				$str =~ s/id=1083/id=174/;
-				$str =~ s/id=1084/id=175/;
-				$str =~ s/id=1085/id=176/;
-				$str =~ s/id=1087/id=177/;
-				$str =~ s/id=1090/id=178/;
-				$str =~ s/id=1091/id=179/;
-				$str =~ s/id=1092/id=180/;
-				$str =~ s/id=1094/id=181/;
-				$str =~ s/id=1095/id=182/;
-				$str =~ s/id=1096/id=183/;
-				$str =~ s/id=1097/id=184/;
-				$str =~ s/id=1098/id=185/;
-				$str =~ s/id=1099/id=186/;
-				$str =~ s/id=1100/id=187/;
-				$str =~ s/id=1101/id=188/;
-				$str =~ s/id=1102/id=190/;
-				$str =~ s/id=1071/id=215/;
-				$str =~ s/id=1103/id=247/;
-				$str =~ s/  chnl=15//;
-				push(@strs, "$str\n"); next;
+				my @str_id = split(" ", $str);
+				$str_id[1] =~ s/352/138/;
+				$str_id[1] =~ s/353/154/;
+				$str_id[1] =~ s/338/140/;
+				$str_id[1] =~ s/339/156/;
+				$str_id[1] =~ s/381/142/;
+				$str_id[1] =~ s/382/158/;
+				$str_id[1] =~ s/376/159/;
+				$str_id[1] =~ s/1041/128/;
+				$str_id[1] =~ s/1043/130/;
+				$str_id[1] =~ s/1044/131/;
+				$str_id[1] =~ s/1046/132/;
+				$str_id[1] =~ s/1047/133/;
+				$str_id[1] =~ s/1048/134/;
+				$str_id[1] =~ s/1049/135/;
+				$str_id[1] =~ s/1051/136/;
+				$str_id[1] =~ s/1055/137/;
+				$str_id[1] =~ s/1059/139/;
+				$str_id[1] =~ s/1060/145/;
+				$str_id[1] =~ s/1062/146/;
+				$str_id[1] =~ s/1063/147/;
+				$str_id[1] =~ s/1064/148/;
+				$str_id[1] =~ s/1065/149/;
+				$str_id[1] =~ s/1066/150/;
+				$str_id[1] =~ s/1067/151/;
+				$str_id[1] =~ s/1068/152/;
+				$str_id[1] =~ s/1069/153/;
+				$str_id[1] =~ s/1070/155/;
+				$str_id[1] =~ s/1073/160/;
+				$str_id[1] =~ s/1074/162/;
+				$str_id[1] =~ s/1075/165/;
+				$str_id[1] =~ s/1076/166/;
+				$str_id[1] =~ s/1078/168/;
+				$str_id[1] =~ s/1079/169/;
+				$str_id[1] =~ s/1080/170/;
+				$str_id[1] =~ s/1081/171/;
+				$str_id[1] =~ s/1082/172/;
+				$str_id[1] =~ s/1083/174/;
+				$str_id[1] =~ s/1084/175/;
+				$str_id[1] =~ s/1085/176/;
+				$str_id[1] =~ s/1087/177/;
+				$str_id[1] =~ s/1090/178/;
+				$str_id[1] =~ s/1091/179/;
+				$str_id[1] =~ s/1092/180/;
+				$str_id[1] =~ s/1094/181/;
+				$str_id[1] =~ s/1095/182/;
+				$str_id[1] =~ s/1096/183/;
+				$str_id[1] =~ s/1097/184/;
+				$str_id[1] =~ s/1098/185/;
+				$str_id[1] =~ s/1099/186/;
+				$str_id[1] =~ s/1100/187/;
+				$str_id[1] =~ s/1101/188/;
+				$str_id[1] =~ s/1102/190/;
+				$str_id[1] =~ s/1071/215/;
+				$str_id[1] =~ s/1103/247/;
+				delete $str_id[10];
+				push(@strs, "@str_id\n"); next;
 			}
 			if ($str =~ m/^kerning/) {
-				my @strs_kerning = split(" ", $str);
-				$strs_kerning[1] =~ s/352/138/;
-				$strs_kerning[1] =~ s/353/154/;
-				$strs_kerning[1] =~ s/338/140/;
-				$strs_kerning[1] =~ s/339/156/;
-				$strs_kerning[1] =~ s/381/142/;
-				$strs_kerning[1] =~ s/382/158/;
-				$strs_kerning[1] =~ s/376/159/;
-				$strs_kerning[1] =~ s/1041/128/;
-				$strs_kerning[1] =~ s/1043/130/;
-				$strs_kerning[1] =~ s/1044/131/;
-				$strs_kerning[1] =~ s/1046/132/;
-				$strs_kerning[1] =~ s/1047/133/;
-				$strs_kerning[1] =~ s/1048/134/;
-				$strs_kerning[1] =~ s/1049/135/;
-				$strs_kerning[1] =~ s/1051/136/;
-				$strs_kerning[1] =~ s/1055/137/;
-				$strs_kerning[1] =~ s/1059/139/;
-				$strs_kerning[1] =~ s/1060/145/;
-				$strs_kerning[1] =~ s/1062/146/;
-				$strs_kerning[1] =~ s/1063/147/;
-				$strs_kerning[1] =~ s/1064/148/;
-				$strs_kerning[1] =~ s/1065/149/;
-				$strs_kerning[1] =~ s/1066/150/;
-				$strs_kerning[1] =~ s/1067/151/;
-				$strs_kerning[1] =~ s/1068/152/;
-				$strs_kerning[1] =~ s/1069/153/;
-				$strs_kerning[1] =~ s/1070/155/;
-				$strs_kerning[1] =~ s/1073/160/;
-				$strs_kerning[1] =~ s/1074/162/;
-				$strs_kerning[1] =~ s/1075/165/;
-				$strs_kerning[1] =~ s/1076/166/;
-				$strs_kerning[1] =~ s/1078/168/;
-				$strs_kerning[1] =~ s/1079/169/;
-				$strs_kerning[1] =~ s/1080/170/;
-				$strs_kerning[1] =~ s/1081/171/;
-				$strs_kerning[1] =~ s/1082/172/;
-				$strs_kerning[1] =~ s/1083/174/;
-				$strs_kerning[1] =~ s/1084/175/;
-				$strs_kerning[1] =~ s/1085/176/;
-				$strs_kerning[1] =~ s/1087/177/;
-				$strs_kerning[1] =~ s/1090/178/;
-				$strs_kerning[1] =~ s/1091/179/;
-				$strs_kerning[1] =~ s/1092/180/;
-				$strs_kerning[1] =~ s/1094/181/;
-				$strs_kerning[1] =~ s/1095/182/;
-				$strs_kerning[1] =~ s/1096/183/;
-				$strs_kerning[1] =~ s/1097/184/;
-				$strs_kerning[1] =~ s/1098/185/;
-				$strs_kerning[1] =~ s/1099/186/;
-				$strs_kerning[1] =~ s/1100/187/;
-				$strs_kerning[1] =~ s/1101/188/;
-				$strs_kerning[1] =~ s/1102/190/;
-				$strs_kerning[1] =~ s/1071/215/;
-				$strs_kerning[1] =~ s/1103/247/;
-				$strs_kerning[2] =~ s/352/138/;
-				$strs_kerning[2] =~ s/353/154/;
-				$strs_kerning[2] =~ s/338/140/;
-				$strs_kerning[2] =~ s/339/156/;
-				$strs_kerning[2] =~ s/381/142/;
-				$strs_kerning[2] =~ s/382/158/;
-				$strs_kerning[2] =~ s/376/159/;
-				$strs_kerning[2] =~ s/1041/128/;
-				$strs_kerning[2] =~ s/1043/130/;
-				$strs_kerning[2] =~ s/1044/131/;
-				$strs_kerning[2] =~ s/1046/132/;
-				$strs_kerning[2] =~ s/1047/133/;
-				$strs_kerning[2] =~ s/1048/134/;
-				$strs_kerning[2] =~ s/1049/135/;
-				$strs_kerning[2] =~ s/1051/136/;
-				$strs_kerning[2] =~ s/1055/137/;
-				$strs_kerning[2] =~ s/1059/139/;
-				$strs_kerning[2] =~ s/1060/145/;
-				$strs_kerning[2] =~ s/1062/146/;
-				$strs_kerning[2] =~ s/1063/147/;
-				$strs_kerning[2] =~ s/1064/148/;
-				$strs_kerning[2] =~ s/1065/149/;
-				$strs_kerning[2] =~ s/1066/150/;
-				$strs_kerning[2] =~ s/1067/151/;
-				$strs_kerning[2] =~ s/1068/152/;
-				$strs_kerning[2] =~ s/1069/153/;
-				$strs_kerning[2] =~ s/1070/155/;
-				$strs_kerning[2] =~ s/1073/160/;
-				$strs_kerning[2] =~ s/1074/162/;
-				$strs_kerning[2] =~ s/1075/165/;
-				$strs_kerning[2] =~ s/1076/166/;
-				$strs_kerning[2] =~ s/1078/168/;
-				$strs_kerning[2] =~ s/1079/169/;
-				$strs_kerning[2] =~ s/1080/170/;
-				$strs_kerning[2] =~ s/1081/171/;
-				$strs_kerning[2] =~ s/1082/172/;
-				$strs_kerning[2] =~ s/1083/174/;
-				$strs_kerning[2] =~ s/1084/175/;
-				$strs_kerning[2] =~ s/1085/176/;
-				$strs_kerning[2] =~ s/1087/177/;
-				$strs_kerning[2] =~ s/1090/178/;
-				$strs_kerning[2] =~ s/1091/179/;
-				$strs_kerning[2] =~ s/1092/180/;
-				$strs_kerning[2] =~ s/1094/181/;
-				$strs_kerning[2] =~ s/1095/182/;
-				$strs_kerning[2] =~ s/1096/183/;
-				$strs_kerning[2] =~ s/1097/184/;
-				$strs_kerning[2] =~ s/1098/185/;
-				$strs_kerning[2] =~ s/1099/186/;
-				$strs_kerning[2] =~ s/1100/187/;
-				$strs_kerning[2] =~ s/1101/188/;
-				$strs_kerning[2] =~ s/1102/190/;
-				$strs_kerning[2] =~ s/1071/215/;
-				$strs_kerning[2] =~ s/1103/247/;
-				push(@strs, "@strs_kerning\n"); next;
+				my @str_kerning = split(" ", $str);
+				$str_kerning[1] =~ s/352/138/;
+				$str_kerning[1] =~ s/353/154/;
+				$str_kerning[1] =~ s/338/140/;
+				$str_kerning[1] =~ s/339/156/;
+				$str_kerning[1] =~ s/381/142/;
+				$str_kerning[1] =~ s/382/158/;
+				$str_kerning[1] =~ s/376/159/;
+				$str_kerning[1] =~ s/1041/128/;
+				$str_kerning[1] =~ s/1043/130/;
+				$str_kerning[1] =~ s/1044/131/;
+				$str_kerning[1] =~ s/1046/132/;
+				$str_kerning[1] =~ s/1047/133/;
+				$str_kerning[1] =~ s/1048/134/;
+				$str_kerning[1] =~ s/1049/135/;
+				$str_kerning[1] =~ s/1051/136/;
+				$str_kerning[1] =~ s/1055/137/;
+				$str_kerning[1] =~ s/1059/139/;
+				$str_kerning[1] =~ s/1060/145/;
+				$str_kerning[1] =~ s/1062/146/;
+				$str_kerning[1] =~ s/1063/147/;
+				$str_kerning[1] =~ s/1064/148/;
+				$str_kerning[1] =~ s/1065/149/;
+				$str_kerning[1] =~ s/1066/150/;
+				$str_kerning[1] =~ s/1067/151/;
+				$str_kerning[1] =~ s/1068/152/;
+				$str_kerning[1] =~ s/1069/153/;
+				$str_kerning[1] =~ s/1070/155/;
+				$str_kerning[1] =~ s/1073/160/;
+				$str_kerning[1] =~ s/1074/162/;
+				$str_kerning[1] =~ s/1075/165/;
+				$str_kerning[1] =~ s/1076/166/;
+				$str_kerning[1] =~ s/1078/168/;
+				$str_kerning[1] =~ s/1079/169/;
+				$str_kerning[1] =~ s/1080/170/;
+				$str_kerning[1] =~ s/1081/171/;
+				$str_kerning[1] =~ s/1082/172/;
+				$str_kerning[1] =~ s/1083/174/;
+				$str_kerning[1] =~ s/1084/175/;
+				$str_kerning[1] =~ s/1085/176/;
+				$str_kerning[1] =~ s/1087/177/;
+				$str_kerning[1] =~ s/1090/178/;
+				$str_kerning[1] =~ s/1091/179/;
+				$str_kerning[1] =~ s/1092/180/;
+				$str_kerning[1] =~ s/1094/181/;
+				$str_kerning[1] =~ s/1095/182/;
+				$str_kerning[1] =~ s/1096/183/;
+				$str_kerning[1] =~ s/1097/184/;
+				$str_kerning[1] =~ s/1098/185/;
+				$str_kerning[1] =~ s/1099/186/;
+				$str_kerning[1] =~ s/1100/187/;
+				$str_kerning[1] =~ s/1101/188/;
+				$str_kerning[1] =~ s/1102/190/;
+				$str_kerning[1] =~ s/1071/215/;
+				$str_kerning[1] =~ s/1103/247/;
+				$str_kerning[2] =~ s/352/138/;
+				$str_kerning[2] =~ s/353/154/;
+				$str_kerning[2] =~ s/338/140/;
+				$str_kerning[2] =~ s/339/156/;
+				$str_kerning[2] =~ s/381/142/;
+				$str_kerning[2] =~ s/382/158/;
+				$str_kerning[2] =~ s/376/159/;
+				$str_kerning[2] =~ s/1041/128/;
+				$str_kerning[2] =~ s/1043/130/;
+				$str_kerning[2] =~ s/1044/131/;
+				$str_kerning[2] =~ s/1046/132/;
+				$str_kerning[2] =~ s/1047/133/;
+				$str_kerning[2] =~ s/1048/134/;
+				$str_kerning[2] =~ s/1049/135/;
+				$str_kerning[2] =~ s/1051/136/;
+				$str_kerning[2] =~ s/1055/137/;
+				$str_kerning[2] =~ s/1059/139/;
+				$str_kerning[2] =~ s/1060/145/;
+				$str_kerning[2] =~ s/1062/146/;
+				$str_kerning[2] =~ s/1063/147/;
+				$str_kerning[2] =~ s/1064/148/;
+				$str_kerning[2] =~ s/1065/149/;
+				$str_kerning[2] =~ s/1066/150/;
+				$str_kerning[2] =~ s/1067/151/;
+				$str_kerning[2] =~ s/1068/152/;
+				$str_kerning[2] =~ s/1069/153/;
+				$str_kerning[2] =~ s/1070/155/;
+				$str_kerning[2] =~ s/1073/160/;
+				$str_kerning[2] =~ s/1074/162/;
+				$str_kerning[2] =~ s/1075/165/;
+				$str_kerning[2] =~ s/1076/166/;
+				$str_kerning[2] =~ s/1078/168/;
+				$str_kerning[2] =~ s/1079/169/;
+				$str_kerning[2] =~ s/1080/170/;
+				$str_kerning[2] =~ s/1081/171/;
+				$str_kerning[2] =~ s/1082/172/;
+				$str_kerning[2] =~ s/1083/174/;
+				$str_kerning[2] =~ s/1084/175/;
+				$str_kerning[2] =~ s/1085/176/;
+				$str_kerning[2] =~ s/1087/177/;
+				$str_kerning[2] =~ s/1090/178/;
+				$str_kerning[2] =~ s/1091/179/;
+				$str_kerning[2] =~ s/1092/180/;
+				$str_kerning[2] =~ s/1094/181/;
+				$str_kerning[2] =~ s/1095/182/;
+				$str_kerning[2] =~ s/1096/183/;
+				$str_kerning[2] =~ s/1097/184/;
+				$str_kerning[2] =~ s/1098/185/;
+				$str_kerning[2] =~ s/1099/186/;
+				$str_kerning[2] =~ s/1100/187/;
+				$str_kerning[2] =~ s/1101/188/;
+				$str_kerning[2] =~ s/1102/190/;
+				$str_kerning[2] =~ s/1071/215/;
+				$str_kerning[2] =~ s/1103/247/;
+				push(@strs, "@str_kerning\n"); next;
 			}
 		}
 		close($file_in);
-		if ($cf2flag == 0) {
-			open(my $file_out, '>:unix:crlf', "$cataloguef1/$files[$i]");
+		# сортировка
+		my $kr;
+		for (my $i = 0; $i < scalar(@strs); $i++) {
+			if ($strs[$i] =~ m/^kernings/) {$kr = $i - 1; last}
+		}
+		@strs[2..$kr] = sort {&srt($a, $b)} @strs[2..$kr];# участок массива от третьей строки до последней строки перед m/^kernings/ сортируется по числам столбца id=
+		# /сортировка
+		if ($c2fl == 0) {
+			open(my $file_out, '>:unix:crlf', "$dir1/$files[$i]");
 			print $file_out @strs;
 			close($file_out);
 		}
-		elsif ($cf2flag == 1) {
-			open(my $file_out, '>:unix:crlf', "$cataloguef2/$files[$i]") or invalid_dir(4);
+		elsif ($c2fl == 1) {
+			open(my $file_out, '>:unix:crlf', "$dir2/$files[$i]");
 			print $file_out @strs;
 			close($file_out);
 		}
 	}
+	$mw -> Unbusy;
+	$status = 'Готово!';
 }
 
-sub invalid_dir {
+sub srt {
+	my $a = shift;
+	my $b = shift;
+	my @a = split(" ", $a);
+	@a = split("=", $a[1]);
+	$a = $a[1];
+	my @b = split(" ", $b);
+	@b = split("=", $b[1]);
+	$b = $b[1];
+	if ($a > $b) {return 1}
+	elsif ($a < $b) {return -1}
+	elsif ($a == $b) {return 0}
+}
+
+#
+# Подпрограммы поддержки интерфейса
+#
+
+sub invcp {
+	$eu4_decode_button -> configure(-state => 'disabled');
+}
+
+sub valcp {
+	$eu4_decode_button -> configure(-state => 'normal');
+}
+
+sub translittable {
+	my $d = $mw -> MsgBox(-type => 'ok', -message => "а — Aa	я — Ää\nо — Oo	ё — Ëë\nу — Uu	ю — Üü\nэ — Êê	е — Ee\nы — Îî	и — Ii\nб — Bb	р — Rr\nв — Vv	с — Ss\nг — Gg	т — Tt\nд — Dd	ф — Ff\nж — Jj	х — Hh\nз — Zz	ц — Qq\nй — Yy	ч — Cc\nк — Kk	ш — Xx\nл — Ll	щ — Çç\nм — Mm	ъ — ’\nн — Nn	ь — Yy\nп — Pp", -title => 'Таблица транслитерации');
+	$d -> Show();
+}
+
+sub invaliddir {
+=pod
+Очищает содержимое переменной с именем каталога
+параметр: ссылка на переменную для очистки
+=cut
 	my $dir = shift;
-	if ($dir == 1) {
-		$catalogue1 = '';
-		$te1 -> delete('0', 'end');
-	}
-	elsif ($dir == 2) {
-		$catalogue2 = '';
-		$te2 -> delete('0', 'end');
-	}
-	elsif ($dir == 3) {
-		$cataloguef1 = '';
-		$tef1 -> delete('0', 'end');
-	}
-	elsif ($dir == 4) {
-		$cataloguef2 = '';
-		$tef2 -> delete('0', 'end');
-	}
+	$$dir = '';
 }
 
 sub seldir {
+=pod
+Вызывает диалог выбора каталога и записывает выбранное значение в переменную с именем каталога и в текстовое поле
+параметр №1: ссылка на переменную, в которую записывать значение
+параметр №2: ссылка на текстовое поле, в которое записывать значение
+=cut
+	my $dir = shift;
 	my $sdir = $mw -> chooseDirectory;
 	if (defined $sdir and $sdir ne '') {
-		$catalogue1 = $sdir;
-		$te1 -> delete('0', 'end');
-		$te1 -> insert('0', $sdir);
+		$$dir = $sdir;
 	}
-}
-
-sub seldir2 {
-	my $sdir = $mw -> chooseDirectory;
-	if (defined $sdir and $sdir ne '') {
-		$catalogue2 = $sdir;
-		$te2 -> delete('0', 'end');
-		$te2 -> insert('0', $sdir);
-	}
-}
-
-sub seldirf1 {
-	my $sdir = $mw -> chooseDirectory;
-	if (defined $sdir and $sdir ne '') {
-		$cataloguef1 = $sdir;
-		$tef1 -> delete('0', 'end');
-		$tef1 -> insert('0', $sdir);
-	}
-}
-
-sub seldirf2 {
-	my $sdir = $mw -> chooseDirectory;
-	if (defined $sdir and $sdir ne '') {
-		$cataloguef2 = $sdir;
-		$tef2 -> delete('0', 'end');
-		$tef2 -> insert('0', $sdir);
-	}
-}
-
-sub cval1 {
-	$catalogue1 = $te1 -> get;
-}
-
-sub cval2 {
-	$catalogue2 = $te2 -> get;
-}
-
-sub cvalf1 {
-	$cataloguef1 = $tef1 -> get;
-}
-
-sub cvalf2 {
-	$cataloguef2 = $tef2 -> get;
 }
