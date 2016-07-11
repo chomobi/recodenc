@@ -70,9 +70,9 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 	$frame_eu4 = $mw -> LabFrame(-label => 'EU4');
 		# фрейм выбора кодировки
 		$frame_eu4_selcp = $frame_eu4 -> Frame;
-		$frame_eu4_selcp -> Radiobutton(-text => 'CP1251', -variable => \$cpflag, -value => '1', -command => \&valcp) -> pack(-side => 'left');
-		$frame_eu4_selcp -> Radiobutton(-text => 'CP1252+CYR', -variable => \$cpflag, -value => '2', -command => \&invcp) -> pack(-side => 'left');
-		$frame_eu4_selcp -> Radiobutton(-text => 'транслит', -variable => \$cpflag, -value => '3', -command => \&valcp) -> pack(-side => 'left');
+		$frame_eu4_selcp -> Radiobutton(-text => 'CP1251', -variable => \$cpflag, -value => '1', -command => \&eu4_valcp) -> pack(-side => 'left');
+		$frame_eu4_selcp -> Radiobutton(-text => 'CP1252+CYR', -variable => \$cpflag, -value => '2', -command => \&eu4_invcp) -> pack(-side => 'left');
+		$frame_eu4_selcp -> Radiobutton(-text => 'транслит', -variable => \$cpflag, -value => '3', -command => \&eu4_valcp) -> pack(-side => 'left');
 		$frame_eu4_selcp -> Button(-text => 'Таблица транслитерации', -command => \&translittable) -> pack(-side => 'right');
 		# фрейм каталога №1
 		$frame_eu4_entry = $frame_eu4 -> Frame;
@@ -121,7 +121,7 @@ $frame_eu4font_entry -> form(-top => '%0', -left => '%0', -right => '%100');
 $frame_eu4font_entrysave -> form(-top => $frame_eu4font_entry, -left => '%0', -right => '%100');
 $frame_eu4font_button -> form(-top => $frame_eu4font_entrysave, -left => '%0', -right => '%100');
 
-if ($cpflag == 2) {&invcp()};
+if ($cpflag == 2) {&eu4_invcp()};
 
 MainLoop;
 
@@ -456,11 +456,11 @@ sub font { # изменяет fnt-карты шрифтов
 		close($file_in);
 		# сортировка
 		my $kr;
-		for (my $i = 0; $i < scalar(@strs); $i++) {
+		for (my $i = 2; $i < scalar(@strs); $i++) {
 			if ($strs[$i] =~ m/^kernings/) {$kr = $i - 1; last}
 		}
 		unless (defined $kr) {$kr = scalar(@strs) - 1}
-		@strs[2..$kr] = sort {&srt($a, $b)} @strs[2..$kr];# участок массива от третьей строки до последней строки перед m/^kernings/ сортируется по числам столбца id=
+		@strs[2..$kr] = sort {&srt($a, $b)} @strs[2..$kr];# участок массива от третьей строки до последней строки перед m/^kernings/ или концом файла сортируется по числам столбца id=
 		# /сортировка
 		if ($c2fl == 0) {
 			open(my $file_out, '>:unix:crlf', "$dir1/$files[$i]");
@@ -492,29 +492,23 @@ sub srt {
 }
 
 #
-# Подпрограммы поддержки интерфейса
+# Подпрограммы поддержки графического интерфейса
 #
 
-sub invcp {
+sub eu4_invcp {
 	$eu4_decode_button -> configure(-state => 'disabled');
 }
 
-sub valcp {
+sub eu4_valcp {
 	$eu4_decode_button -> configure(-state => 'normal');
 }
 
 sub translittable {
+=pod
+Показывает таблицу транслитерации
+=cut
 	my $d = $mw -> MsgBox(-type => 'ok', -message => "а — Aa	я — Ää\nо — Oo	ё — Ëë\nу — Uu	ю — Üü\nэ — Êê	е — Ee\nы — Îî	и — Ii\nб — Bb	р — Rr\nв — Vv	с — Ss\nг — Gg	т — Tt\nд — Dd	ф — Ff\nж — Jj	х — Hh\nз — Zz	ц — Qq\nй — Yy	ч — Cc\nк — Kk	ш — Xx\nл — Ll	щ — Çç\nм — Mm	ъ — ’\nн — Nn	ь — Yy\nп — Pp", -title => 'Таблица транслитерации');
 	$d -> Show();
-}
-
-sub invaliddir {
-=pod
-Очищает содержимое переменной с именем каталога
-параметр: ссылка на переменную для очистки
-=cut
-	my $dir = shift;
-	$$dir = '';
 }
 
 sub seldir {
