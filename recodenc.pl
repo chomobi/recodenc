@@ -459,6 +459,7 @@ sub font { # изменяет fnt-карты шрифтов
 		for (my $i = 0; $i < scalar(@strs); $i++) {
 			if ($strs[$i] =~ m/^kernings/) {$kr = $i - 1; last}
 		}
+		unless (defined $kr) {$kr = scalar(@strs) - 1}
 		@strs[2..$kr] = sort {&srt($a, $b)} @strs[2..$kr];# участок массива от третьей строки до последней строки перед m/^kernings/ сортируется по числам столбца id=
 		# /сортировка
 		if ($c2fl == 0) {
