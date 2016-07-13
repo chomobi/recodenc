@@ -21,7 +21,7 @@ BEGIN {
 	}
 }
 
-my $version = 'v0.2.1';
+my $version = 'v0.2.2';
 my $status = ''; # переменная для вывода статуса
 # инициализация конфигурации
 my $cpflag = '1';
@@ -72,7 +72,7 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 		$frame_eu4_selcp = $frame_eu4 -> Frame;
 		$frame_eu4_selcp -> Radiobutton(-text => 'CP1251', -variable => \$cpflag, -value => '1', -command => \&eu4_valcp) -> pack(-side => 'left');
 		$frame_eu4_selcp -> Radiobutton(-text => 'CP1252+CYR', -variable => \$cpflag, -value => '2', -command => \&eu4_invcp) -> pack(-side => 'left');
-		$frame_eu4_selcp -> Radiobutton(-text => 'транслит', -variable => \$cpflag, -value => '3', -command => \&eu4_valcp) -> pack(-side => 'left');
+		$frame_eu4_selcp -> Radiobutton(-text => 'транслит', -variable => \$cpflag, -value => '3', -command => \&eu4_invcp) -> pack(-side => 'left');
 		$frame_eu4_selcp -> Button(-text => 'Таблица транслитерации', -command => \&translittable) -> pack(-side => 'right');
 		# фрейм каталога №1
 		$frame_eu4_entry = $frame_eu4 -> Frame;
@@ -121,7 +121,7 @@ $frame_eu4font_entry -> form(-top => '%0', -left => '%0', -right => '%100');
 $frame_eu4font_entrysave -> form(-top => $frame_eu4font_entry, -left => '%0', -right => '%100');
 $frame_eu4font_button -> form(-top => $frame_eu4font_entrysave, -left => '%0', -right => '%100');
 
-if ($cpflag == 2) {&eu4_invcp()};
+if ($cpflag == 2 or $cpflag == 3) {&eu4_invcp()};
 
 MainLoop;
 
@@ -222,10 +222,8 @@ sub code { # перекодировка файлов
 				$sps[1] =~ s/÷//g;
 				$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
 			}
-			elsif ($cpfl == 3 and $opfl == 0) {$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ'ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/}
+			elsif ($cpfl == 3 and $opfl == 0) {$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ’ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/}
 			elsif ($cpfl == 1 and $opfl == 1) {$sps[1] =~ y/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
-#			elsif ($cpfl == 2 and $opfl == 1) {$sps[1] =~ y/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
-			elsif ($cpfl == 3 and $opfl == 1) {$sps[1] =~ y/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ'ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/}
 			push(@strs, "$sps[0]:$sps[1]\n");
 		}
 		close($file);
@@ -342,114 +340,63 @@ sub font { # изменяет fnt-карты шрифтов
 			}
 			if ($str =~ m/^kerning/) {
 				my @str_kerning = split(" ", $str);
-				$str_kerning[1] =~ s/352/138/;
-				$str_kerning[1] =~ s/353/154/;
-				$str_kerning[1] =~ s/338/140/;
-				$str_kerning[1] =~ s/339/156/;
-				$str_kerning[1] =~ s/381/142/;
-				$str_kerning[1] =~ s/382/158/;
-				$str_kerning[1] =~ s/376/159/;
-				$str_kerning[1] =~ s/1041/128/;
-				$str_kerning[1] =~ s/1043/130/;
-				$str_kerning[1] =~ s/1044/131/;
-				$str_kerning[1] =~ s/1046/132/;
-				$str_kerning[1] =~ s/1047/133/;
-				$str_kerning[1] =~ s/1048/134/;
-				$str_kerning[1] =~ s/1049/135/;
-				$str_kerning[1] =~ s/1051/136/;
-				$str_kerning[1] =~ s/1055/137/;
-				$str_kerning[1] =~ s/1059/139/;
-				$str_kerning[1] =~ s/1060/145/;
-				$str_kerning[1] =~ s/1062/146/;
-				$str_kerning[1] =~ s/1063/147/;
-				$str_kerning[1] =~ s/1064/148/;
-				$str_kerning[1] =~ s/1065/149/;
-				$str_kerning[1] =~ s/1066/150/;
-				$str_kerning[1] =~ s/1067/151/;
-				$str_kerning[1] =~ s/1068/152/;
-				$str_kerning[1] =~ s/1069/153/;
-				$str_kerning[1] =~ s/1070/155/;
-				$str_kerning[1] =~ s/1073/160/;
-				$str_kerning[1] =~ s/1074/162/;
-				$str_kerning[1] =~ s/1075/165/;
-				$str_kerning[1] =~ s/1076/166/;
-				$str_kerning[1] =~ s/1078/168/;
-				$str_kerning[1] =~ s/1079/169/;
-				$str_kerning[1] =~ s/1080/170/;
-				$str_kerning[1] =~ s/1081/171/;
-				$str_kerning[1] =~ s/1082/172/;
-				$str_kerning[1] =~ s/1083/174/;
-				$str_kerning[1] =~ s/1084/175/;
-				$str_kerning[1] =~ s/1085/176/;
-				$str_kerning[1] =~ s/1087/177/;
-				$str_kerning[1] =~ s/1090/178/;
-				$str_kerning[1] =~ s/1091/179/;
-				$str_kerning[1] =~ s/1092/180/;
-				$str_kerning[1] =~ s/1094/181/;
-				$str_kerning[1] =~ s/1095/182/;
-				$str_kerning[1] =~ s/1096/183/;
-				$str_kerning[1] =~ s/1097/184/;
-				$str_kerning[1] =~ s/1098/185/;
-				$str_kerning[1] =~ s/1099/186/;
-				$str_kerning[1] =~ s/1100/187/;
-				$str_kerning[1] =~ s/1101/188/;
-				$str_kerning[1] =~ s/1102/190/;
-				$str_kerning[1] =~ s/1071/215/;
-				$str_kerning[1] =~ s/1103/247/;
-				$str_kerning[2] =~ s/352/138/;
-				$str_kerning[2] =~ s/353/154/;
-				$str_kerning[2] =~ s/338/140/;
-				$str_kerning[2] =~ s/339/156/;
-				$str_kerning[2] =~ s/381/142/;
-				$str_kerning[2] =~ s/382/158/;
-				$str_kerning[2] =~ s/376/159/;
-				$str_kerning[2] =~ s/1041/128/;
-				$str_kerning[2] =~ s/1043/130/;
-				$str_kerning[2] =~ s/1044/131/;
-				$str_kerning[2] =~ s/1046/132/;
-				$str_kerning[2] =~ s/1047/133/;
-				$str_kerning[2] =~ s/1048/134/;
-				$str_kerning[2] =~ s/1049/135/;
-				$str_kerning[2] =~ s/1051/136/;
-				$str_kerning[2] =~ s/1055/137/;
-				$str_kerning[2] =~ s/1059/139/;
-				$str_kerning[2] =~ s/1060/145/;
-				$str_kerning[2] =~ s/1062/146/;
-				$str_kerning[2] =~ s/1063/147/;
-				$str_kerning[2] =~ s/1064/148/;
-				$str_kerning[2] =~ s/1065/149/;
-				$str_kerning[2] =~ s/1066/150/;
-				$str_kerning[2] =~ s/1067/151/;
-				$str_kerning[2] =~ s/1068/152/;
-				$str_kerning[2] =~ s/1069/153/;
-				$str_kerning[2] =~ s/1070/155/;
-				$str_kerning[2] =~ s/1073/160/;
-				$str_kerning[2] =~ s/1074/162/;
-				$str_kerning[2] =~ s/1075/165/;
-				$str_kerning[2] =~ s/1076/166/;
-				$str_kerning[2] =~ s/1078/168/;
-				$str_kerning[2] =~ s/1079/169/;
-				$str_kerning[2] =~ s/1080/170/;
-				$str_kerning[2] =~ s/1081/171/;
-				$str_kerning[2] =~ s/1082/172/;
-				$str_kerning[2] =~ s/1083/174/;
-				$str_kerning[2] =~ s/1084/175/;
-				$str_kerning[2] =~ s/1085/176/;
-				$str_kerning[2] =~ s/1087/177/;
-				$str_kerning[2] =~ s/1090/178/;
-				$str_kerning[2] =~ s/1091/179/;
-				$str_kerning[2] =~ s/1092/180/;
-				$str_kerning[2] =~ s/1094/181/;
-				$str_kerning[2] =~ s/1095/182/;
-				$str_kerning[2] =~ s/1096/183/;
-				$str_kerning[2] =~ s/1097/184/;
-				$str_kerning[2] =~ s/1098/185/;
-				$str_kerning[2] =~ s/1099/186/;
-				$str_kerning[2] =~ s/1100/187/;
-				$str_kerning[2] =~ s/1101/188/;
-				$str_kerning[2] =~ s/1102/190/;
-				$str_kerning[2] =~ s/1071/215/;
-				$str_kerning[2] =~ s/1103/247/;
+				for my $i (1, 2) {
+					# заменяет номера во втором и третьем столбце
+					$str_kerning[$i] =~ s/352/138/;
+					$str_kerning[$i] =~ s/353/154/;
+					$str_kerning[$i] =~ s/338/140/;
+					$str_kerning[$i] =~ s/339/156/;
+					$str_kerning[$i] =~ s/381/142/;
+					$str_kerning[$i] =~ s/382/158/;
+					$str_kerning[$i] =~ s/376/159/;
+					$str_kerning[$i] =~ s/1041/128/;
+					$str_kerning[$i] =~ s/1043/130/;
+					$str_kerning[$i] =~ s/1044/131/;
+					$str_kerning[$i] =~ s/1046/132/;
+					$str_kerning[$i] =~ s/1047/133/;
+					$str_kerning[$i] =~ s/1048/134/;
+					$str_kerning[$i] =~ s/1049/135/;
+					$str_kerning[$i] =~ s/1051/136/;
+					$str_kerning[$i] =~ s/1055/137/;
+					$str_kerning[$i] =~ s/1059/139/;
+					$str_kerning[$i] =~ s/1060/145/;
+					$str_kerning[$i] =~ s/1062/146/;
+					$str_kerning[$i] =~ s/1063/147/;
+					$str_kerning[$i] =~ s/1064/148/;
+					$str_kerning[$i] =~ s/1065/149/;
+					$str_kerning[$i] =~ s/1066/150/;
+					$str_kerning[$i] =~ s/1067/151/;
+					$str_kerning[$i] =~ s/1068/152/;
+					$str_kerning[$i] =~ s/1069/153/;
+					$str_kerning[$i] =~ s/1070/155/;
+					$str_kerning[$i] =~ s/1073/160/;
+					$str_kerning[$i] =~ s/1074/162/;
+					$str_kerning[$i] =~ s/1075/165/;
+					$str_kerning[$i] =~ s/1076/166/;
+					$str_kerning[$i] =~ s/1078/168/;
+					$str_kerning[$i] =~ s/1079/169/;
+					$str_kerning[$i] =~ s/1080/170/;
+					$str_kerning[$i] =~ s/1081/171/;
+					$str_kerning[$i] =~ s/1082/172/;
+					$str_kerning[$i] =~ s/1083/174/;
+					$str_kerning[$i] =~ s/1084/175/;
+					$str_kerning[$i] =~ s/1085/176/;
+					$str_kerning[$i] =~ s/1087/177/;
+					$str_kerning[$i] =~ s/1090/178/;
+					$str_kerning[$i] =~ s/1091/179/;
+					$str_kerning[$i] =~ s/1092/180/;
+					$str_kerning[$i] =~ s/1094/181/;
+					$str_kerning[$i] =~ s/1095/182/;
+					$str_kerning[$i] =~ s/1096/183/;
+					$str_kerning[$i] =~ s/1097/184/;
+					$str_kerning[$i] =~ s/1098/185/;
+					$str_kerning[$i] =~ s/1099/186/;
+					$str_kerning[$i] =~ s/1100/187/;
+					$str_kerning[$i] =~ s/1101/188/;
+					$str_kerning[$i] =~ s/1102/190/;
+					$str_kerning[$i] =~ s/1071/215/;
+					$str_kerning[$i] =~ s/1103/247/;
+				}
 				push(@strs, "@str_kerning\n"); next;
 			}
 		}
@@ -513,9 +460,8 @@ sub translittable {
 
 sub seldir {
 =pod
-Вызывает диалог выбора каталога и записывает выбранное значение в переменную с именем каталога и в текстовое поле
-параметр №1: ссылка на переменную, в которую записывать значение
-параметр №2: ссылка на текстовое поле, в которое записывать значение
+Вызывает диалог выбора каталога и записывает выбранное значение в переменную с именем каталога
+параметр: ссылка на переменную, в которую записывать значение
 =cut
 	my $dir = shift;
 	my $sdir = $mw -> chooseDirectory;
