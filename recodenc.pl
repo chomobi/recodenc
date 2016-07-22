@@ -21,7 +21,7 @@ binmode(STDIN, ":utf8");
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
-my $version = 'v0.2.4';
+my $version = 'v0.2.5';
 my $status = ''; # переменная для вывода статуса
 # инициализация конфигурации
 my $cpflag = '1';
@@ -88,7 +88,7 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 		$frame_eu4_buttons -> Button(-text => 'Кодировать', -command => [\&code => 0]) -> form(-left => '%0', -right => '%50');
 		$eu4_decode_button = $frame_eu4_buttons -> Button(-text => 'Декодировать', -command => [\&code => 1]) -> form(-left => '%50', -right => '%100');
 	# рамка EU4 fnt
-	$frame_eu4font = $mw -> LabFrame(-label => 'EU4 шрифты (fnt) для кодировки CP1252+CYR');
+	$frame_eu4font = $mw -> LabFrame(-label => 'EU4 шрифты (fnt)');
 		# фрейм каталога №1
 		$frame_eu4font_entry = $frame_eu4font -> Frame;
 		$frame_eu4font_entry -> Entry(-width => '50', -textvariable => \$cataloguef1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
@@ -100,7 +100,8 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 		$frame_eu4font_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef2]) -> pack(-side => 'right');
 		# фрейм кнопки
 		$frame_eu4font_button = $frame_eu4font -> Frame;
-		$frame_eu4font_button -> Button(-text => 'Кодировать', -command => \&font) -> pack(-expand => '1', -fill => 'x', -side => 'left');
+		$frame_eu4font_button -> Button(-text => 'Кодировать', -command => [\&font => '1']) -> form(-left => '%0', -right => '%50');
+		$frame_eu4font_button -> Button(-text => 'Кодировать (CP1252+CYR)', -command => [\&font => '2']) -> form(-left => '%50', -right => '%100');
 	$frame_ck2 = $mw -> LabFrame(-label => 'CK2');
 	$frame_ck2 -> Label(-text => 'Поддержка CK2 запланирована.') -> pack(-side => 'left');
 	$frame_buttons = $mw -> Frame;
@@ -212,6 +213,7 @@ sub code { # перекодировка файлов
 }
 
 sub font { # изменяет fnt-карты шрифтов
+	my $cpfl = shift;#1 — не трогать; 2 — обработка CP1252+CYR
 	my $c2fl = $cf2flag;#0 — перезаписать; 1 — сохранить в другое место
 	my $dir1 = $cataloguef1;#каталог №1
 	my $dir2 = $cataloguef2;#каталог №2
@@ -250,133 +252,139 @@ sub font { # изменяет fnt-карты шрифтов
 			}
 			if ($str =~ m/^char/) {
 				my @str_id = split(" ", $str);
-				$str_id[1] =~ s/352/138/;
-				$str_id[1] =~ s/353/154/;
-				$str_id[1] =~ s/338/140/;
-				$str_id[1] =~ s/339/156/;
-				$str_id[1] =~ s/381/142/;
-				$str_id[1] =~ s/382/158/;
-				$str_id[1] =~ s/376/159/;
-				$str_id[1] =~ s/1041/128/;
-				$str_id[1] =~ s/1043/130/;
-				$str_id[1] =~ s/1044/131/;
-				$str_id[1] =~ s/1046/132/;
-				$str_id[1] =~ s/1047/133/;
-				$str_id[1] =~ s/1048/134/;
-				$str_id[1] =~ s/1049/135/;
-				$str_id[1] =~ s/1051/136/;
-				$str_id[1] =~ s/1055/137/;
-				$str_id[1] =~ s/1059/139/;
-				$str_id[1] =~ s/1060/145/;
-				$str_id[1] =~ s/1062/146/;
-				$str_id[1] =~ s/1063/147/;
-				$str_id[1] =~ s/1064/148/;
-				$str_id[1] =~ s/1065/149/;
-				$str_id[1] =~ s/1066/150/;
-				$str_id[1] =~ s/1067/151/;
-				$str_id[1] =~ s/1068/152/;
-				$str_id[1] =~ s/1069/153/;
-				$str_id[1] =~ s/1070/155/;
-				$str_id[1] =~ s/1073/160/;
-				$str_id[1] =~ s/1074/162/;
-				$str_id[1] =~ s/1075/165/;
-				$str_id[1] =~ s/1076/166/;
-				$str_id[1] =~ s/1078/168/;
-				$str_id[1] =~ s/1079/169/;
-				$str_id[1] =~ s/1080/170/;
-				$str_id[1] =~ s/1081/171/;
-				$str_id[1] =~ s/1082/172/;
-				$str_id[1] =~ s/1083/174/;
-				$str_id[1] =~ s/1084/175/;
-				$str_id[1] =~ s/1085/176/;
-				$str_id[1] =~ s/1087/177/;
-				$str_id[1] =~ s/1090/178/;
-				$str_id[1] =~ s/1091/179/;
-				$str_id[1] =~ s/1092/180/;
-				$str_id[1] =~ s/1094/181/;
-				$str_id[1] =~ s/1095/182/;
-				$str_id[1] =~ s/1096/183/;
-				$str_id[1] =~ s/1097/184/;
-				$str_id[1] =~ s/1098/185/;
-				$str_id[1] =~ s/1099/186/;
-				$str_id[1] =~ s/1100/187/;
-				$str_id[1] =~ s/1101/188/;
-				$str_id[1] =~ s/1102/190/;
-				$str_id[1] =~ s/1071/215/;
-				$str_id[1] =~ s/1103/247/;
+				if ($cpfl eq 2) {#если CP1252+CYR, то заменить номера сомволов
+					$str_id[1] =~ s/352/138/;
+					$str_id[1] =~ s/353/154/;
+					$str_id[1] =~ s/338/140/;
+					$str_id[1] =~ s/339/156/;
+					$str_id[1] =~ s/381/142/;
+					$str_id[1] =~ s/382/158/;
+					$str_id[1] =~ s/376/159/;
+					$str_id[1] =~ s/1041/128/;
+					$str_id[1] =~ s/1043/130/;
+					$str_id[1] =~ s/1044/131/;
+					$str_id[1] =~ s/1046/132/;
+					$str_id[1] =~ s/1047/133/;
+					$str_id[1] =~ s/1048/134/;
+					$str_id[1] =~ s/1049/135/;
+					$str_id[1] =~ s/1051/136/;
+					$str_id[1] =~ s/1055/137/;
+					$str_id[1] =~ s/1059/139/;
+					$str_id[1] =~ s/1060/145/;
+					$str_id[1] =~ s/1062/146/;
+					$str_id[1] =~ s/1063/147/;
+					$str_id[1] =~ s/1064/148/;
+					$str_id[1] =~ s/1065/149/;
+					$str_id[1] =~ s/1066/150/;
+					$str_id[1] =~ s/1067/151/;
+					$str_id[1] =~ s/1068/152/;
+					$str_id[1] =~ s/1069/153/;
+					$str_id[1] =~ s/1070/155/;
+					$str_id[1] =~ s/1073/160/;
+					$str_id[1] =~ s/1074/162/;
+					$str_id[1] =~ s/1075/165/;
+					$str_id[1] =~ s/1076/166/;
+					$str_id[1] =~ s/1078/168/;
+					$str_id[1] =~ s/1079/169/;
+					$str_id[1] =~ s/1080/170/;
+					$str_id[1] =~ s/1081/171/;
+					$str_id[1] =~ s/1082/172/;
+					$str_id[1] =~ s/1083/174/;
+					$str_id[1] =~ s/1084/175/;
+					$str_id[1] =~ s/1085/176/;
+					$str_id[1] =~ s/1087/177/;
+					$str_id[1] =~ s/1090/178/;
+					$str_id[1] =~ s/1091/179/;
+					$str_id[1] =~ s/1092/180/;
+					$str_id[1] =~ s/1094/181/;
+					$str_id[1] =~ s/1095/182/;
+					$str_id[1] =~ s/1096/183/;
+					$str_id[1] =~ s/1097/184/;
+					$str_id[1] =~ s/1098/185/;
+					$str_id[1] =~ s/1099/186/;
+					$str_id[1] =~ s/1100/187/;
+					$str_id[1] =~ s/1101/188/;
+					$str_id[1] =~ s/1102/190/;
+					$str_id[1] =~ s/1071/215/;
+					$str_id[1] =~ s/1103/247/;
+				}
 				delete $str_id[10];
 				push(@strs, "@str_id\n"); next;
 			}
 			if ($str =~ m/^kerning/) {
 				my @str_kerning = split(" ", $str);
-				for my $i (1, 2) {
-					# заменяет номера во втором и третьем столбце
-					$str_kerning[$i] =~ s/352/138/;
-					$str_kerning[$i] =~ s/353/154/;
-					$str_kerning[$i] =~ s/338/140/;
-					$str_kerning[$i] =~ s/339/156/;
-					$str_kerning[$i] =~ s/381/142/;
-					$str_kerning[$i] =~ s/382/158/;
-					$str_kerning[$i] =~ s/376/159/;
-					$str_kerning[$i] =~ s/1041/128/;
-					$str_kerning[$i] =~ s/1043/130/;
-					$str_kerning[$i] =~ s/1044/131/;
-					$str_kerning[$i] =~ s/1046/132/;
-					$str_kerning[$i] =~ s/1047/133/;
-					$str_kerning[$i] =~ s/1048/134/;
-					$str_kerning[$i] =~ s/1049/135/;
-					$str_kerning[$i] =~ s/1051/136/;
-					$str_kerning[$i] =~ s/1055/137/;
-					$str_kerning[$i] =~ s/1059/139/;
-					$str_kerning[$i] =~ s/1060/145/;
-					$str_kerning[$i] =~ s/1062/146/;
-					$str_kerning[$i] =~ s/1063/147/;
-					$str_kerning[$i] =~ s/1064/148/;
-					$str_kerning[$i] =~ s/1065/149/;
-					$str_kerning[$i] =~ s/1066/150/;
-					$str_kerning[$i] =~ s/1067/151/;
-					$str_kerning[$i] =~ s/1068/152/;
-					$str_kerning[$i] =~ s/1069/153/;
-					$str_kerning[$i] =~ s/1070/155/;
-					$str_kerning[$i] =~ s/1073/160/;
-					$str_kerning[$i] =~ s/1074/162/;
-					$str_kerning[$i] =~ s/1075/165/;
-					$str_kerning[$i] =~ s/1076/166/;
-					$str_kerning[$i] =~ s/1078/168/;
-					$str_kerning[$i] =~ s/1079/169/;
-					$str_kerning[$i] =~ s/1080/170/;
-					$str_kerning[$i] =~ s/1081/171/;
-					$str_kerning[$i] =~ s/1082/172/;
-					$str_kerning[$i] =~ s/1083/174/;
-					$str_kerning[$i] =~ s/1084/175/;
-					$str_kerning[$i] =~ s/1085/176/;
-					$str_kerning[$i] =~ s/1087/177/;
-					$str_kerning[$i] =~ s/1090/178/;
-					$str_kerning[$i] =~ s/1091/179/;
-					$str_kerning[$i] =~ s/1092/180/;
-					$str_kerning[$i] =~ s/1094/181/;
-					$str_kerning[$i] =~ s/1095/182/;
-					$str_kerning[$i] =~ s/1096/183/;
-					$str_kerning[$i] =~ s/1097/184/;
-					$str_kerning[$i] =~ s/1098/185/;
-					$str_kerning[$i] =~ s/1099/186/;
-					$str_kerning[$i] =~ s/1100/187/;
-					$str_kerning[$i] =~ s/1101/188/;
-					$str_kerning[$i] =~ s/1102/190/;
-					$str_kerning[$i] =~ s/1071/215/;
-					$str_kerning[$i] =~ s/1103/247/;
+				if ($cpfl eq 2) {#если CP1252+CYR, то заменить номера сомволов
+					for my $i (1, 2) {
+						# заменяет номера во втором и третьем столбце
+						$str_kerning[$i] =~ s/352/138/;
+						$str_kerning[$i] =~ s/353/154/;
+						$str_kerning[$i] =~ s/338/140/;
+						$str_kerning[$i] =~ s/339/156/;
+						$str_kerning[$i] =~ s/381/142/;
+						$str_kerning[$i] =~ s/382/158/;
+						$str_kerning[$i] =~ s/376/159/;
+						$str_kerning[$i] =~ s/1041/128/;
+						$str_kerning[$i] =~ s/1043/130/;
+						$str_kerning[$i] =~ s/1044/131/;
+						$str_kerning[$i] =~ s/1046/132/;
+						$str_kerning[$i] =~ s/1047/133/;
+						$str_kerning[$i] =~ s/1048/134/;
+						$str_kerning[$i] =~ s/1049/135/;
+						$str_kerning[$i] =~ s/1051/136/;
+						$str_kerning[$i] =~ s/1055/137/;
+						$str_kerning[$i] =~ s/1059/139/;
+						$str_kerning[$i] =~ s/1060/145/;
+						$str_kerning[$i] =~ s/1062/146/;
+						$str_kerning[$i] =~ s/1063/147/;
+						$str_kerning[$i] =~ s/1064/148/;
+						$str_kerning[$i] =~ s/1065/149/;
+						$str_kerning[$i] =~ s/1066/150/;
+						$str_kerning[$i] =~ s/1067/151/;
+						$str_kerning[$i] =~ s/1068/152/;
+						$str_kerning[$i] =~ s/1069/153/;
+						$str_kerning[$i] =~ s/1070/155/;
+						$str_kerning[$i] =~ s/1073/160/;
+						$str_kerning[$i] =~ s/1074/162/;
+						$str_kerning[$i] =~ s/1075/165/;
+						$str_kerning[$i] =~ s/1076/166/;
+						$str_kerning[$i] =~ s/1078/168/;
+						$str_kerning[$i] =~ s/1079/169/;
+						$str_kerning[$i] =~ s/1080/170/;
+						$str_kerning[$i] =~ s/1081/171/;
+						$str_kerning[$i] =~ s/1082/172/;
+						$str_kerning[$i] =~ s/1083/174/;
+						$str_kerning[$i] =~ s/1084/175/;
+						$str_kerning[$i] =~ s/1085/176/;
+						$str_kerning[$i] =~ s/1087/177/;
+						$str_kerning[$i] =~ s/1090/178/;
+						$str_kerning[$i] =~ s/1091/179/;
+						$str_kerning[$i] =~ s/1092/180/;
+						$str_kerning[$i] =~ s/1094/181/;
+						$str_kerning[$i] =~ s/1095/182/;
+						$str_kerning[$i] =~ s/1096/183/;
+						$str_kerning[$i] =~ s/1097/184/;
+						$str_kerning[$i] =~ s/1098/185/;
+						$str_kerning[$i] =~ s/1099/186/;
+						$str_kerning[$i] =~ s/1100/187/;
+						$str_kerning[$i] =~ s/1101/188/;
+						$str_kerning[$i] =~ s/1102/190/;
+						$str_kerning[$i] =~ s/1071/215/;
+						$str_kerning[$i] =~ s/1103/247/;
+					}
 				}
 				push(@strs, "@str_kerning\n"); next;
 			}
 		}
 		close($file_in);
 		# сортировка
-		my $kr;
-		for (my $i = 2; $i < scalar(@strs); $i++) {
-			if ($strs[$i] =~ m/^kernings/) {$kr = $i - 1; last}
+		if ($cpfl eq 2) {#если CP1252+CYR, то сортировать
+			my $kr;
+			for (my $i = 2; $i < scalar(@strs); $i++) {
+				if ($strs[$i] =~ m/^kernings/) {$kr = $i - 1; last}
+			}
+			unless (defined $kr) {$kr = scalar(@strs) - 1}
+			@strs[2..$kr] = sort {&srt($a, $b)} @strs[2..$kr];# участок массива от третьей строки до последней строки перед m/^kernings/ или концом файла сортируется по числам столбца id=
 		}
-		unless (defined $kr) {$kr = scalar(@strs) - 1}
-		@strs[2..$kr] = sort {&srt($a, $b)} @strs[2..$kr];# участок массива от третьей строки до последней строки перед m/^kernings/ или концом файла сортируется по числам столбца id=
 		# /сортировка
 		if ($c2fl == 0) {
 			open(my $file_out, '>:unix:crlf', "$dir1/$files[$i]");
