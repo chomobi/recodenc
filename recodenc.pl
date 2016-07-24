@@ -160,7 +160,7 @@ sub code { # перекодировка файлов
 	for (my $i = 0; $i < scalar(@files); $i++) {
 		unless (-T "$dir1/$files[$i]") {next}
 		open(my $file, '<:unix:perlio:utf8', "$dir1/$files[$i]");
-		my @strs;
+		my @strs; # объявление хранилища строк
 		push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
 		while (my $str = <$file>) {
 			chomp $str;
@@ -236,12 +236,12 @@ sub font { # изменяет fnt-карты шрифтов
 			if ($str =~ m/^info/) {
 				$str =~ s/size=-/size=/;
 				$str =~ s/ charset=""/ charset="ANSI"/;
-				$str =~ s/ unicode=.//;
-				$str =~ s/ outline=.//;
+				$str =~ s/ unicode=\w+//;
+				$str =~ s/ outline=\w+//;
 				push(@strs, "$str\n"); next;
 			}
 			if ($str =~ m/^common/) {
-				$str =~ s/ packed=. alphaChnl=. redChnl=. greenChnl=. blueChnl=.//;
+				$str =~ s/ packed=\w+ alphaChnl=\w+ redChnl=\w+ greenChnl=\w+ blueChnl=\w+//;
 				push(@strs, "$str\n"); next;
 			}
 			if ($str =~ m/^page/) {
@@ -252,7 +252,7 @@ sub font { # изменяет fnt-карты шрифтов
 			}
 			if ($str =~ m/^char/) {
 				my @str_id = split(" ", $str);
-				if ($cpfl eq 2) {#если CP1252+CYR, то заменить номера сомволов
+				if ($cpfl eq 2) {#если CP1252+CYR, то заменить номера символов
 					$str_id[1] =~ s/352/138/;
 					$str_id[1] =~ s/353/154/;
 					$str_id[1] =~ s/338/140/;
