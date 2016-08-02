@@ -4,12 +4,14 @@
 # * 
 # ******************************************************************************
 ################################################################################
+# закрытие окна терминала в windows
 BEGIN {
 	if ($^O eq 'MSWin32') {
 		require Win32::Console;
 		Win32::Console::Free();
 	}
 }
+
 use utf8;
 use v5.18;
 use warnings;
@@ -23,16 +25,16 @@ binmode(STDIN, ":utf8");
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
-my $version = 'v0.2.5';
+my $version = 'v0.3';
 my $status = ''; # переменная для вывода статуса
 # инициализация конфигурации
-my $cpflag = '1';
-my $c2flag = '0';
-my $catalogue1 = '';
-my $catalogue2 = '';
-my $cf2flag = '0';
-my $cataloguef1 = '';
-my $cataloguef2 = '';
+my $page_raised = 'eu4'; # идентификатор поднятой страницы
+my $c2flag = '0'; # 0 = не сохранять в др. каталог; 1 = сохранять
+my $catalogue1 = ''; # каталог 1
+my $catalogue2 = ''; # каталог 2
+my $cf2flag = '0'; # 0 = не сохранять в др. каталог; 1 = сохранять
+my $cataloguef1 = ''; # каталог шрифтов 1
+my $cataloguef2 = ''; # каталог шрифтов 2
 my $catalogue_ck2_origru = ''; # каталог с русской локализацией CK2 (Full)
 my $catalogue_ck2_origen = ''; # каталог с английской локализацией CK2
 my $catalogue_ck2_saveru = ''; # каталог для сохранения скомпилированной Lite-локализации
@@ -40,53 +42,46 @@ my $catalogue_ck2_saveru = ''; # каталог для сохранения ск
 my $path = Cwd::realpath($0);
 $path =~ s/.pl$/.conf/;
 if (open(my $file_conf, '<:unix:perlio:utf8', $path)) {
-	$cpflag = <$file_conf>; chomp($cpflag); # 1 = CP1251; 2 = CP1252+CYR
-	$c2flag = <$file_conf>; chomp($c2flag); # 0 = не сохранять в др. каталог; 1 = сохранять
-	$catalogue1 = <$file_conf>; chomp($catalogue1); # каталог 1
-	$catalogue2 = <$file_conf>; chomp($catalogue2); # каталог 2
-	$cf2flag = <$file_conf>; chomp($cf2flag); # 0 = не сохранять в др. каталог; 1 = сохранять
-	$cataloguef1 = <$file_conf>; chomp($cataloguef1); # каталог шрифтов 1
-	$cataloguef2 = <$file_conf>; chomp($cataloguef2); # каталог шрифтов 2
+	$page_raised = <$file_conf>; chomp($page_raised);
+	$c2flag = <$file_conf>; chomp($c2flag);
+	$catalogue1 = <$file_conf>; chomp($catalogue1);
+	$catalogue2 = <$file_conf>; chomp($catalogue2);
+	$cf2flag = <$file_conf>; chomp($cf2flag);
+	$cataloguef1 = <$file_conf>; chomp($cataloguef1);
+	$cataloguef2 = <$file_conf>; chomp($cataloguef2);
 	$catalogue_ck2_origru = <$file_conf>; chomp($catalogue_ck2_origru);
 	$catalogue_ck2_origen = <$file_conf>; chomp($catalogue_ck2_origen);
 	$catalogue_ck2_saveru = <$file_conf>; chomp($catalogue_ck2_saveru);
 	close($file_conf);
 }
 # проверка загруженной конфигурации
-unless ($cpflag == 1 or $cpflag == 2 or $cpflag == 3) {$cpflag = 1}
+unless ($page_raised eq 'eu4' or $page_raised eq 'ck2' or $page_raised eq 'fnt') {$page_raised = 'eu4'}
 unless ($c2flag == 0 or $c2flag == 1) {$c2flag = 0}
 ## рисование интерфейса
 # инициализация переменных для хранения указателей на элементы интерфейса
 my $mw; # главное окно
 my $frame_notebook; # фрейм, содержащий вкладки
 my $page_eu4; # вкладка EU4
-my $page_eu4font; # вкладка EU4 шрифт
 my $page_ck2; # вкладка CK2
-my $frame_eu4_selcp; # фрейм с выбором кодировки
+my $page_font; # вкладка шрифт
 my $frame_eu4_entry; # фрейм для текстового поля с первым каталогом
 my $frame_eu4_entrysave; # фрейм для тектового поля со вторым каталогом
 my $frame_eu4_buttons; # фрейм с кнопками действий для перекодировки
-my $eu4_decode_button; # кнопка «декодировать»
-my $frame_eu4font_entry; # фрейм для текстового поля с первым каталогом
-my $frame_eu4font_entrysave; # фрейм для тектового поля со вторым каталогом
-my $frame_eu4font_button; # фрейм кнопки действия
-my $frame_ck2_entry_origru;
-my $frame_ck2_entry_origen;
-my $frame_ck2_entry_saveru;
-my $frame_ck2_buttons;
+my $button_eu4_decode; # кнопка «декодировать»
+my $frame_font_entry; # фрейм для текстового поля с первым каталогом
+my $frame_font_entrysave; # фрейм для тектового поля со вторым каталогом
+my $frame_font_buttons; # фрейм кнопки действия
+my $frame_ck2_entry_origru; # фрейм текстового поля с русской Full-локализацией
+my $frame_ck2_entry_origen; # фрейм текстового поля с локализацией из игры
+my $frame_ck2_entry_saveru; # фрейм текстового поля с каталогом для сохранения результата
+my $frame_ck2_buttons; # фрейм с кнопками
 my $frame_buttons; # фрейм с кнопкой «закрыть»
 
 # создание основного окна
 $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 	$frame_notebook = $mw -> NoteBook();
 	# вкладка EU4
-	$page_eu4 = $frame_notebook -> add( 'eu4', -label => 'EU4');
-		# фрейм выбора кодировки
-		$frame_eu4_selcp = $page_eu4 -> Frame;
-		$frame_eu4_selcp -> Radiobutton(-text => 'CP1251', -variable => \$cpflag, -value => '1', -command => \&eu4_valcp) -> pack(-side => 'left');
-		$frame_eu4_selcp -> Radiobutton(-text => 'CP1252+CYR', -variable => \$cpflag, -value => '2', -command => \&eu4_invcp) -> pack(-side => 'left');
-		$frame_eu4_selcp -> Radiobutton(-text => 'транслит', -variable => \$cpflag, -value => '3', -command => \&eu4_invcp) -> pack(-side => 'left');
-		$frame_eu4_selcp -> Button(-text => 'Таблица транслитерации', -command => \&translittable) -> pack(-side => 'right');
+	$page_eu4 = $frame_notebook -> add( 'eu4', -label => 'EU4', -raisecmd => [\&save_page_raised => 'eu4']);
 		# фрейм каталога №1
 		$frame_eu4_entry = $page_eu4 -> Frame;
 		$frame_eu4_entry -> Entry(-width => '50', -textvariable => \$catalogue1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
@@ -98,10 +93,12 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 		$frame_eu4_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue2]) -> pack(-side => 'right');
 		# фрейм кнопок
 		$frame_eu4_buttons = $page_eu4 -> Frame;
-		$frame_eu4_buttons -> Button(-text => 'Кодировать', -command => [\&encodelocalisation => 0]) -> form(-left => '%0', -right => '%50');
-		$eu4_decode_button = $frame_eu4_buttons -> Button(-text => 'Декодировать', -command => [\&encodelocalisation => 1]) -> form(-left => '%50', -right => '%100');
+		$frame_eu4_buttons -> Button(-text => 'Кодировать (CP1251)', -command => [\&encodelocalisation_eu4 => 'cp1251']) -> form(-left => '%0', -right => '%25');
+		$frame_eu4_buttons -> Button(-text => 'Кодировать (CP1252+CYR)', -command => [\&encodelocalisation_eu4 => 'cp1252pcyr']) -> form(-left => '%25', -right => '%50');
+		$frame_eu4_buttons -> Button(-text => 'Транслитерировать', -command => [\&encodelocalisation_eu4 => 'translit']) -> form(-left => '%50', -right => '%75');
+		$frame_eu4_buttons -> Button(-text => 'Таблица транслитерации', -command => \&translittable) -> form(-left => '%75', -right => '%100');
 	# вкладка CK2
-	$page_ck2 = $frame_notebook -> add( 'ck2', -label => 'CK2');
+	$page_ck2 = $frame_notebook -> add( 'ck2', -label => 'CK2', -raisecmd => [\&save_page_raised => 'ck2']);
 		# фрейм каталога с русской локализацией (исходной)
 		$frame_ck2_entry_origru = $page_ck2 -> Frame;
 		$frame_ck2_entry_origru -> Label(-text => 'Рус. лок.:') -> pack(-side => 'left');
@@ -119,24 +116,25 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 		$frame_ck2_entry_saveru -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_saveru]) -> pack(-side => 'right');
 		# фрейм кнопок
 		$frame_ck2_buttons = $page_ck2 -> Frame;
-		$frame_ck2_buttons -> Button(-text => 'Кодировать', -command => [\&encodelocalisation_ck2 => '0', $catalogue_ck2_origen, $catalogue_ck2_origru, $catalogue_ck2_saveru]) -> form(-left => '%0', -right => '%50');
-		$frame_ck2_buttons -> Button(-text => 'Транслитерировать', -command => [\&encodelocalisation_ck2 => '1', $catalogue_ck2_origen, $catalogue_ck2_origru, $catalogue_ck2_saveru]) -> form(-left => '%50', -right => '%100');
-	# вкладка EU4 fnt
-	$page_eu4font = $frame_notebook -> add( 'eu4_script', -label => 'Шрифт');
+		$frame_ck2_buttons -> Button(-text => 'Кодировать (CP1252+CYR)', -command => [\&encodelocalisation_ck2 => 'cp1252pcyr']) -> form(-left => '%0', -right => '%33');
+		$frame_ck2_buttons -> Button(-text => 'Транслитерировать', -command => [\&encodelocalisation_ck2 => 'translit']) -> form(-left => '%33', -right => '%66');
+		$frame_ck2_buttons -> Button(-text => 'Только тэги', -command => \&ck2_tags) -> form(-left => '%66', -right => '%100');
+	# вкладка fnt
+	$page_font = $frame_notebook -> add( 'fnt', -label => 'Шрифт', -raisecmd => [\&save_page_raised => 'fnt']);
 		# фрейм каталога №1
-		$frame_eu4font_entry = $page_eu4font -> Frame;
-		$frame_eu4font_entry -> Entry(-width => '50', -textvariable => \$cataloguef1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4font_entry -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef1]) -> pack(-side => 'right');
+		$frame_font_entry = $page_font -> Frame;
+		$frame_font_entry -> Entry(-width => '50', -textvariable => \$cataloguef1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
+		$frame_font_entry -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef1]) -> pack(-side => 'right');
 		# фрейм каталога №2
-		$frame_eu4font_entrysave = $page_eu4font ->Frame;
-		$frame_eu4font_entrysave -> Checkbutton(-text => 'Сохранить в:', -variable => \$cf2flag) -> pack(-side => 'left');
-		$frame_eu4font_entrysave -> Entry(-width => '50', -textvariable => \$cataloguef2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4font_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef2]) -> pack(-side => 'right');
+		$frame_font_entrysave = $page_font ->Frame;
+		$frame_font_entrysave -> Checkbutton(-text => 'Сохранить в:', -variable => \$cf2flag) -> pack(-side => 'left');
+		$frame_font_entrysave -> Entry(-width => '50', -textvariable => \$cataloguef2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
+		$frame_font_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef2]) -> pack(-side => 'right');
 		# фрейм кнопки
-		$frame_eu4font_button = $page_eu4font -> Frame;
-		$frame_eu4font_button -> Button(-text => 'Кодировать', -command => [\&font => '1']) -> form(-left => '%0', -right => '%33');
-		$frame_eu4font_button -> Button(-text => 'Кодировать (CP1252+CYR-EU4)', -command => [\&font => '2']) -> form(-left => '%33', -right => '%66');
-		$frame_eu4font_button -> Button(-text => 'Кодировать (CP1252+CYR-CK2)', -command => [\&font => '3']) -> form(-left => '%66', -right => '%100');
+		$frame_font_buttons = $page_font -> Frame;
+		$frame_font_buttons -> Button(-text => 'Кодировать', -command => [\&font => '0']) -> form(-left => '%0', -right => '%33');
+		$frame_font_buttons -> Button(-text => 'Кодировать (CP1252+CYR-EU4)', -command => [\&font => 'eu4']) -> form(-left => '%33', -right => '%66');
+		$frame_font_buttons -> Button(-text => 'Кодировать (CP1252+CYR-CK2)', -command => [\&font => 'ck2']) -> form(-left => '%66', -right => '%100');
 	$frame_buttons = $mw -> Frame;
 	$frame_buttons -> Label(-anchor => 'w' ,-relief => 'flat', -textvariable => \$status) -> pack(-expand => '1', -fill => 'x', -side => 'left'); # строка статуса
 	$frame_buttons -> Button(-text => 'Закрыть', -command => [$mw => 'destroy']) -> pack(-side => 'right');
@@ -144,28 +142,27 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
 $frame_notebook -> form(-top => '%0', -left => '%0', -right => '%100');
 $frame_buttons -> form(-top => $frame_notebook, -left => '%1', -right => '%99');
 # фреймы EU4
-$frame_eu4_selcp -> form(-top => '%0', -left => '%0', -right => '%100');
-$frame_eu4_entry -> form(-top => $frame_eu4_selcp, -left => '%0', -right => '%100');
+$frame_eu4_entry -> form(-top => '%0', -left => '%0', -right => '%100');
 $frame_eu4_entrysave -> form(-top => $frame_eu4_entry, -left => '%0', -right => '%100');
 $frame_eu4_buttons -> form(-top => $frame_eu4_entrysave, -left => '%0', -right => '%100');
-# фреймы EU4-fnt
-$frame_eu4font_entry -> form(-top => '%0', -left => '%0', -right => '%100');
-$frame_eu4font_entrysave -> form(-top => $frame_eu4font_entry, -left => '%0', -right => '%100');
-$frame_eu4font_button -> form(-top => $frame_eu4font_entrysave, -left => '%0', -right => '%100');
 # фреймы CK2
 $frame_ck2_entry_origru -> form(-top => '%0', -left => '%0', -right => '%100');
 $frame_ck2_entry_origen -> form(-top => $frame_ck2_entry_origru, -left => '%0', -right => '%100');
 $frame_ck2_entry_saveru -> form(-top => $frame_ck2_entry_origen, -left => '%0', -right => '%100');
 $frame_ck2_buttons -> form(-top => $frame_ck2_entry_saveru, -left => '%0', -right => '%100');
+# фреймы EU4-fnt
+$frame_font_entry -> form(-top => '%0', -left => '%0', -right => '%100');
+$frame_font_entrysave -> form(-top => $frame_font_entry, -left => '%0', -right => '%100');
+$frame_font_buttons -> form(-top => $frame_font_entrysave, -left => '%0', -right => '%100');
 
-if ($cpflag == 2 or $cpflag == 3) {&eu4_invcp()};
+$frame_notebook -> raise("$page_raised");
 
 MainLoop;
 
 # запись конфигурации
 open(my $file_conf_o, '>:unix:perlio:utf8', $path);
 my @strscf;
-push(@strscf, "$cpflag\n");
+push(@strscf, "$page_raised\n");
 push(@strscf, "$c2flag\n");
 push(@strscf, "$catalogue1\n");
 push(@strscf, "$catalogue2\n");
@@ -181,59 +178,67 @@ close $file_conf_o;
 ################
 # ПОДПРОГРАММЫ #
 ################
-sub encodelocalisation { # перекодировка файлов
-	my $opfl = shift;#0 — кодировка; 1 — декодировка
-	my $c2fl = $c2flag;#0 — перезаписать; 1 — сохранить в другое место
-	my $cpfl = $cpflag;#1 — CP1251; 2 — CP1252+CYR; 3 — транслит
-	my $dir1 = $catalogue1;#каталог №1
-	my $dir2 = $catalogue2;#каталог №2
+# Конвертор файлов локализации EU4
+# ПРОЦЕДУРА
+sub encodelocalisation_eu4 {
+	my $cpfl = shift; # cp1251 — CP1251; cp1252pcyr — CP1252+CYR; translit — транслит
+	my $c2fl = $c2flag; # 0 — перезаписать; 1 — сохранить в другое место
+	my $dir1 = $catalogue1; # каталог №1
+	my $dir2 = $catalogue2; # каталог №2
 	# проверка параметров
 	unless (-d $dir1) {$status = 'Каталог с исходными данными не найден!'; return 1};
 	if ($c2fl == 1) {unless (-d $dir2) {$status = 'Каталог для сохранения не найден!'; return 1}};
 	# работа
-	$status = 'Обработка ...';
-	$mw -> Busy(-recurse => 1);
+	&win_busy();
 	opendir(my $ch, $dir1);
 	my @files = grep { ! /^\.\.?\z/ } readdir $ch;
 	closedir($ch);
 	for (my $i = 0; $i < scalar(@files); $i++) {
 		unless (-T "$dir1/$files[$i]") {next}
 		open(my $file, '<:unix:perlio:utf8', "$dir1/$files[$i]");
+		my $fl = 0; # флаг нужности/ненужности обработки строк
 		my @strs; # объявление хранилища строк
 		push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
 		while (my $str = <$file>) {
 			chomp $str;
 			if ($str =~ m/\r$/) {$str =~ s/\r$//} # защита от идиотов, подающих на вход CRLF
 			if ($str =~ m/^\x{FEFF}/) {$str =~ s/^\x{FEFF}//} # удаление BOM из обрабатываемых строк
-			if ($str =~ m/^\#/) {push(@strs, "$str\n"); next}
-			if ($str =~ m/^ \#/) {push(@strs, "$str\n"); next}
-			if ($str =~ m/^$/) {push(@strs, "$str\n"); next}
-			if ($str =~ m/^ $/) {push(@strs, "$str\n"); next}
-			my @sps = split(/:/, $str, '2');
-			if    ($cpfl == 1 and $opfl == 0) {
-				$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/;
+			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next} # запоминание и пропуск необрабатываемых строк
+			if ($str =~ m/^l_/) {
+				push(@strs, "$str\n");
+				if   ($str =~ m/^l_russian/) {$fl = 1}
+				else                         {$fl = 0}
+				next;
 			}
-			elsif ($cpfl == 2 and $opfl == 0) {
-				$sps[1] =~ s/„/\\\"/g;
-				$sps[1] =~ s/…/.../g;
-				$sps[1] =~ s/“/\\\"/g;
-				$sps[1] =~ s/”/\\\"/g;
-				$sps[1] =~ s/™/(tm)/g;
-				$sps[1] =~ s/©/(c)/g;
-				$sps[1] =~ s/«/\\\"/g;
-				$sps[1] =~ s/®/(r)/g;
-				$sps[1] =~ s/±/+-/g;
-				$sps[1] =~ s/»/\\\"/g;
-				$sps[1] =~ tr/‚ƒ†‡‰‹‘’•–—˜› ¦ª°²³´µ·¹º€ˆ¢¥¨¬¯¶¸¼½¾×÷/'f++%'''*\-\-~' lao23'm.1o/d;
-				$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
+			if ($fl eq 0) {push(@strs, "$str\n"); next}
+			# деление строки
+			my $tag = $str;
+			$tag =~ s/^ //;
+			$tag =~ s/:.+$//;
+			my $num = $str;
+			$num =~ s/^ [^:]+://;
+			$num =~ s/ ".+$//;
+			my $txt = $str;
+			$txt =~ s/^.+? "//;
+			$txt =~ s/"( #.*)??$//;
+			# обработка строки
+			if    ($cpfl eq 'cp1251') {
+				$txt = &cyr_to_cp1251($txt);
 			}
-			elsif ($cpfl == 3 and $opfl == 0) {
-				$sps[1] =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ’ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/;
+			elsif ($cpfl eq 'cp1252pcyr') {
+				$txt = &cyr_to_cp1252pcyr($txt, 'eu4');
 			}
-			elsif ($cpfl == 1 and $opfl == 1) {
-				$sps[1] =~ y/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/;
+			elsif ($cpfl eq 'translit') {
+				$txt = &cyr_to_translit($txt);
 			}
-			push(@strs, "$sps[0]:$sps[1]\n");
+			# сохранение строки
+			if ($str =~ m/"( #.*)+?$/) {
+				my $cmm = $str;
+				$cmm =~ s/^.+? #//;
+				push(@strs, " $tag:$num \"$txt\" #$cmm\n");
+				next;
+			}
+			push(@strs, " $tag:$num \"$txt\"\n");
 		}
 		close($file);
 		if ($c2fl == 0) {
@@ -247,41 +252,42 @@ sub encodelocalisation { # перекодировка файлов
 			close $out;
 		}
 	}
-	$mw -> Unbusy;
-	$status = 'Готово!';
+	&win_unbusy();
 }
 
+# Конвертор файлов локализации CK2
+# ПРОЦЕДУРА
 sub encodelocalisation_ck2 {
-	my $cpfl = shift;#0 — CP1252+CYR; 1 — транслит
-	my $dir_orig_en = shift;
-	my $dir_orig_ru = shift;
-	my $dir_save_ru = shift;
+	my $cpfl = shift; # cp1252pcyr — CP1252+CYR; translit — транслит
+	my $dir_orig_en = $catalogue_ck2_origen;
+	my $dir_orig_ru = $catalogue_ck2_origru;
+	my $dir_save_ru = $catalogue_ck2_saveru;
 	unless (-d $dir_orig_en) {$status = 'Не найден каталог с английской локализацией!'; return 1}
 	unless (-d $dir_orig_ru) {$status = 'Не найден каталог с русской локализацией!'; return 1}
 	unless (-d $dir_save_ru) {$status = 'Не найден каталог для сохранения локализации!'; return 1}
-	$status = 'Обработка ...';
-	$mw -> Busy(-recurse => 1);
+	&win_busy();
 	my %loc_ru;
 	opendir(my $corh, $dir_orig_ru);
 	my @files_or = grep { ! /^\.\.?\z/ } readdir $corh;
 	closedir($corh);
 	for (my $i = 0; $i < scalar(@files_or); $i++) {
+		unless (-T "$dir_orig_ru/$files_or[$i]") {next}
 		open(my $fh, '<:raw', "$dir_orig_ru/$files_or[$i]");
 		while (my $str = <$fh>) {
-			$str = decode('cp1252', $str);
-			$str =~ s/\x{FFFD}//g;
-			$str =~ s/\r$//;
-			chomp($str);
-			if ($str =~ m/^$/) {next}
-			if ($str =~ m/^\#/) {next}
-			if ($str =~ m/^;/) {next}
+			$str = decode('cp1252', $str); # декодировка строки из CP1252
+			$str =~ s/\x{FFFD}//g; # удаление символа-заполнителя при перекодировке неправильно сформированных символов
+			$str =~ s/\r$//; # удаление CR в конце строки
+			chomp($str); # удаление LF
+			if ($str =~ m/^$/) {next} # пропуск пустых строк
+			if ($str =~ m/^\#/) {next} # пропуск строк с комментариями
+			if ($str =~ m/^;/) {next} # пропуск строк без тегов
 			my $tag = $str;
 			$tag =~ s/;.*$//;
 			my $trns = $str;
 			$trns =~ s/^[^;]*//;
 			$trns =~ s/^;//;
 			$trns =~ s/;.*$//;
-			$trns =~ tr/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/;
+			$trns = &cp1251_to_cyr($trns); # эта конструкция ломает расширенную латиницу из CP1252, если она там была
 			$loc_ru{$tag} = $trns;
 		}
 		close($fh);
@@ -290,9 +296,10 @@ sub encodelocalisation_ck2 {
 	my @files_oe = grep { ! /^\.\.?\z/ } readdir $coeh;
 	closedir($coeh);
 	for (my $i = 0; $i < scalar(@files_oe); $i++) {
+		unless (-T "$dir_orig_en/$files_oe[$i]") {next}
 		open(my $fh, '<:raw', "$dir_orig_en/$files_oe[$i]");
 		my $ff; # флаг содержания файла
-		my @strs;
+		my @strs; # хранилище строк
 		push(@strs, "#CODE;RUSSIAN;x\n");
 		while (my $str = <$fh>) {
 			$str = decode('cp1252', $str);
@@ -309,16 +316,22 @@ sub encodelocalisation_ck2 {
 			$trns =~ s/^;//;
 			$trns =~ s/;.*$//;
 			my $st;
-			if ($tag =~ m/^PROV[1-9]/ or $tag =~ m/^b_/ or $tag =~ m/^c_/ or $tag =~ m/^d_/ or $tag =~ m/^e_/ or $tag =~ m/^k_/ or $tag =~ m/^W_L_[1-9]/) {
+			if ($tag =~ m/^PROV[1-9]/ or
+			    $tag =~ m/^b_/ or
+			    $tag =~ m/^c_/ or
+			    $tag =~ m/^d_/ or
+			    $tag =~ m/^e_/ or
+			    $tag =~ m/^k_/ or
+			    $tag =~ m/^W_L_[1-9]/) {
 				$st = "$tag;$trns;x\n";
 			}
 			elsif (defined($loc_ru{$tag})) {
 				my $trru = $loc_ru{$tag};
-				if ($cpfl eq '0') {
-					$trru =~ tr/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
+				if ($cpfl eq 'cp1252pcyr') {
+					$trru = &cyr_to_cp1252pcyr($trru, 'ck2');
 				}
-				elsif ($cpfl eq '1') {
-					$trru =~ tr/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ’ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/;
+				elsif ($cpfl eq 'translit') {
+					$trru = &cyr_to_translit($trru);
 				}
 				$st = "$tag;$trru;x\n";
 			}
@@ -333,19 +346,90 @@ sub encodelocalisation_ck2 {
 		print $ffh @strs;
 		close($ffh);
 	}
-	$mw -> Unbusy;
-	$status = 'Готово!';
+	&win_unbusy();
 }
 
+# Вывод тэгов локализации CK2
+# ПРОЦЕДУРА
+sub ck2_tags {
+	my $dir_orig_en = $catalogue_ck2_origen;
+	my $dir_orig_ru = $catalogue_ck2_origru;
+	my $dir_save_ru = $catalogue_ck2_saveru;
+	unless (-d $dir_orig_en) {$status = 'Не найден каталог с английской локализацией!'; return 1}
+	unless (-d $dir_orig_ru) {$status = 'Не найден каталог с русской локализацией!'; return 1}
+	unless (-d $dir_save_ru) {$status = 'Не найден каталог для сохранения локализации!'; return 1}
+	&win_busy();
+	opendir(my $corh, $dir_orig_ru);
+	my @files_or = grep { ! /^\.\.?\z/ } readdir $corh;
+	closedir($corh);
+	mkdir("$dir_save_ru/ru");
+	for (my $i = 0; $i < scalar(@files_or); $i++) {
+		unless (-T "$dir_orig_ru/$files_or[$i]") {next}
+		open(my $fh, '<:raw', "$dir_orig_ru/$files_or[$i]");
+		my $ff;
+		my @strs;
+		push(@strs, "\x{FEFF}#CODE\n");
+		while (my $str = <$fh>) {
+			$str = decode('cp1252', $str);
+			$str =~ s/\x{FFFD}//g;
+			$str =~ s/\r$//;
+			chomp($str);
+			if ($str =~ m/^$/) {next}
+			if ($str =~ m/^\#/) {next}
+			if ($str =~ m/^;/) {next}
+			my $tag = $str;
+			$tag =~ s/;.*$//;
+			push(@strs, "$tag\n");
+			$ff = 1;
+		}
+		close($fh);
+		unless (defined($ff)) {next}
+		open(my $ffh, '>:unix:perlio:utf8', "$dir_save_ru/ru/$files_or[$i]");
+		print $ffh @strs;
+		close($ffh);
+	}
+	opendir(my $coeh, $dir_orig_en);
+	my @files_oe = grep { ! /^\.\.?\z/ } readdir $coeh;
+	closedir($coeh);
+	mkdir("$dir_save_ru/en");
+	for (my $i = 0; $i < scalar(@files_oe); $i++) {
+		unless (-T "$dir_orig_en/$files_oe[$i]") {next}
+		open(my $fh, '<:raw', "$dir_orig_en/$files_oe[$i]");
+		my $ff;
+		my @strs;
+		push(@strs, "\x{FEFF}#CODE\n");
+		while (my $str = <$fh>) {
+			$str = decode('cp1252', $str);
+			$str =~ s/\x{FFFD}//g;
+			$str =~ s/\r$//;
+			chomp($str);
+			if ($str =~ m/^$/) {next}
+			if ($str =~ m/^\#/) {next}
+			if ($str =~ m/^;/) {next}
+			my $tag = $str;
+			$tag =~ s/;.*$//;
+			push(@strs, "$tag\n");
+			$ff = 1;
+		}
+		close($fh);
+		unless (defined($ff)) {next}
+		open(my $ffh, '>:unix:perlio:utf8', "$dir_save_ru/en/$files_oe[$i]");
+		print $ffh @strs;
+		close($ffh);
+	}
+	&win_unbusy();
+}
+
+# Очистка и модификация карт шрифтов
+# ПРОЦЕДУРА
 sub font { # изменяет fnt-карты шрифтов
-	my $cpfl = shift;#1 — не трогать; 2 — обработка CP1252+CYR-EU4; 3 — обработка CP1252+CYR-CK2
+	my $cpfl = shift;#0 — не трогать; eu4 — обработка CP1252+CYR-EU4; ck2 — обработка CP1252+CYR-CK2
 	my $c2fl = $cf2flag;#0 — перезаписать; 1 — сохранить в другое место
 	my $dir1 = $cataloguef1;#каталог №1
 	my $dir2 = $cataloguef2;#каталог №2
 	unless (-d $dir1) {$status = 'Каталог с исходными данными не найден!'; return 1}
 	if ($c2fl == 1) {unless (-d $dir2) {$status = 'Каталог для сохранения не найден!'; return 1}}
-	$status = 'Обработка ...';
-	$mw -> Busy(-recurse => 1);
+	&win_busy();
 	opendir(my $ch, $dir1);
 	my @files = grep { ! /^\.\.?\z/ } readdir $ch;
 	closedir($ch);
@@ -377,142 +461,24 @@ sub font { # изменяет fnt-карты шрифтов
 			}
 			if ($str =~ m/^char/) {
 				my @str_id = split(" ", $str);
-				if ($cpfl eq 2 or $cpfl eq 3) {#если CP1252+CYR, то заменить номера символов
-					$str_id[1] =~ s/352/138/;
-					$str_id[1] =~ s/353/154/;
-					$str_id[1] =~ s/338/140/;
-					$str_id[1] =~ s/339/156/;
-					$str_id[1] =~ s/381/142/;
-					$str_id[1] =~ s/382/158/;
-					$str_id[1] =~ s/376/159/;
-					if ($cpfl eq 2) {
-						$str_id[1] =~ s/1041/128/;
-					}
-					elsif ($cpfl eq 3) {
-						$str_id[1] =~ s/1041/94/;
-					}
-					$str_id[1] =~ s/1043/130/;
-					$str_id[1] =~ s/1044/131/;
-					$str_id[1] =~ s/1046/132/;
-					$str_id[1] =~ s/1047/133/;
-					$str_id[1] =~ s/1048/134/;
-					$str_id[1] =~ s/1049/135/;
-					$str_id[1] =~ s/1051/136/;
-					$str_id[1] =~ s/1055/137/;
-					$str_id[1] =~ s/1059/139/;
-					$str_id[1] =~ s/1060/145/;
-					$str_id[1] =~ s/1062/146/;
-					$str_id[1] =~ s/1063/147/;
-					$str_id[1] =~ s/1064/148/;
-					$str_id[1] =~ s/1065/149/;
-					$str_id[1] =~ s/1066/150/;
-					$str_id[1] =~ s/1067/151/;
-					$str_id[1] =~ s/1068/152/;
-					$str_id[1] =~ s/1069/153/;
-					$str_id[1] =~ s/1070/155/;
-					$str_id[1] =~ s/1073/160/;
-					$str_id[1] =~ s/1074/162/;
-					$str_id[1] =~ s/1075/165/;
-					$str_id[1] =~ s/1076/166/;
-					$str_id[1] =~ s/1078/168/;
-					$str_id[1] =~ s/1079/169/;
-					$str_id[1] =~ s/1080/170/;
-					$str_id[1] =~ s/1081/171/;
-					$str_id[1] =~ s/1082/172/;
-					$str_id[1] =~ s/1083/174/;
-					$str_id[1] =~ s/1084/175/;
-					$str_id[1] =~ s/1085/176/;
-					$str_id[1] =~ s/1087/177/;
-					$str_id[1] =~ s/1090/178/;
-					$str_id[1] =~ s/1091/179/;
-					$str_id[1] =~ s/1092/180/;
-					$str_id[1] =~ s/1094/181/;
-					$str_id[1] =~ s/1095/182/;
-					$str_id[1] =~ s/1096/183/;
-					$str_id[1] =~ s/1097/184/;
-					$str_id[1] =~ s/1098/185/;
-					$str_id[1] =~ s/1099/186/;
-					$str_id[1] =~ s/1100/187/;
-					$str_id[1] =~ s/1101/188/;
-					$str_id[1] =~ s/1102/190/;
-					$str_id[1] =~ s/1071/215/;
-					$str_id[1] =~ s/1103/247/;
+				if ($cpfl eq 'eu4' or $cpfl eq 'ck2') {#если CP1252+CYR, то заменить номера символов
+					$str_id[1] = &id_to_cp1252pcyr($str_id[1], $cpfl);
 				}
 				delete $str_id[10];
 				push(@strs, "@str_id\n"); next;
 			}
 			if ($str =~ m/^kerning/) {
 				my @str_kerning = split(" ", $str);
-				if ($cpfl eq 2 or $cpfl eq 3) {#если CP1252+CYR, то заменить номера сомволов
-					for my $i (1, 2) {
-						# заменяет номера во втором и третьем столбце
-						$str_kerning[$i] =~ s/352/138/;
-						$str_kerning[$i] =~ s/353/154/;
-						$str_kerning[$i] =~ s/338/140/;
-						$str_kerning[$i] =~ s/339/156/;
-						$str_kerning[$i] =~ s/381/142/;
-						$str_kerning[$i] =~ s/382/158/;
-						$str_kerning[$i] =~ s/376/159/;
-						if ($cpfl eq 2) {
-							$str_kerning[$i] =~ s/1041/128/;
-						}
-						elsif ($cpfl eq 3) {
-							$str_kerning[$i] =~ s/1041/94/;
-						}
-						$str_kerning[$i] =~ s/1043/130/;
-						$str_kerning[$i] =~ s/1044/131/;
-						$str_kerning[$i] =~ s/1046/132/;
-						$str_kerning[$i] =~ s/1047/133/;
-						$str_kerning[$i] =~ s/1048/134/;
-						$str_kerning[$i] =~ s/1049/135/;
-						$str_kerning[$i] =~ s/1051/136/;
-						$str_kerning[$i] =~ s/1055/137/;
-						$str_kerning[$i] =~ s/1059/139/;
-						$str_kerning[$i] =~ s/1060/145/;
-						$str_kerning[$i] =~ s/1062/146/;
-						$str_kerning[$i] =~ s/1063/147/;
-						$str_kerning[$i] =~ s/1064/148/;
-						$str_kerning[$i] =~ s/1065/149/;
-						$str_kerning[$i] =~ s/1066/150/;
-						$str_kerning[$i] =~ s/1067/151/;
-						$str_kerning[$i] =~ s/1068/152/;
-						$str_kerning[$i] =~ s/1069/153/;
-						$str_kerning[$i] =~ s/1070/155/;
-						$str_kerning[$i] =~ s/1073/160/;
-						$str_kerning[$i] =~ s/1074/162/;
-						$str_kerning[$i] =~ s/1075/165/;
-						$str_kerning[$i] =~ s/1076/166/;
-						$str_kerning[$i] =~ s/1078/168/;
-						$str_kerning[$i] =~ s/1079/169/;
-						$str_kerning[$i] =~ s/1080/170/;
-						$str_kerning[$i] =~ s/1081/171/;
-						$str_kerning[$i] =~ s/1082/172/;
-						$str_kerning[$i] =~ s/1083/174/;
-						$str_kerning[$i] =~ s/1084/175/;
-						$str_kerning[$i] =~ s/1085/176/;
-						$str_kerning[$i] =~ s/1087/177/;
-						$str_kerning[$i] =~ s/1090/178/;
-						$str_kerning[$i] =~ s/1091/179/;
-						$str_kerning[$i] =~ s/1092/180/;
-						$str_kerning[$i] =~ s/1094/181/;
-						$str_kerning[$i] =~ s/1095/182/;
-						$str_kerning[$i] =~ s/1096/183/;
-						$str_kerning[$i] =~ s/1097/184/;
-						$str_kerning[$i] =~ s/1098/185/;
-						$str_kerning[$i] =~ s/1099/186/;
-						$str_kerning[$i] =~ s/1100/187/;
-						$str_kerning[$i] =~ s/1101/188/;
-						$str_kerning[$i] =~ s/1102/190/;
-						$str_kerning[$i] =~ s/1071/215/;
-						$str_kerning[$i] =~ s/1103/247/;
-					}
+				if ($cpfl eq 'eu4' or $cpfl eq 'ck2') {#если CP1252+CYR, то заменить номера символов
+					$str_kerning[1] = &id_to_cp1252pcyr($str_kerning[1], $cpfl);
+					$str_kerning[2] = &id_to_cp1252pcyr($str_kerning[2], $cpfl);
 				}
 				push(@strs, "@str_kerning\n"); next;
 			}
 		}
 		close($file_in);
 		# сортировка
-		if ($cpfl eq 2 or $cpfl eq 3) {#если CP1252+CYR, то сортировать
+		if ($cpfl eq 'eu4' or $cpfl eq 'ck2') {#если CP1252+CYR, то сортировать
 			my $kr;
 			for (my $i = 2; $i < scalar(@strs); $i++) {
 				if ($strs[$i] =~ m/^kernings/) {$kr = $i - 1; last}
@@ -532,10 +498,10 @@ sub font { # изменяет fnt-карты шрифтов
 			close($file_out);
 		}
 	}
-	$mw -> Unbusy;
-	$status = 'Готово!';
+	&win_unbusy();
 }
 
+# функция помощи сортировки для функции модификации карт шрифтов
 sub srt {
 	my $a = shift;
 	my $b = shift;
@@ -550,17 +516,113 @@ sub srt {
 	elsif ($a == $b) {return 0}
 }
 
+# функция для преобразования кириллицы из UTF-8 в CP1251
+sub cyr_to_cp1251 {
+	my $str = shift;
+	$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/;
+	return $str;
+}
+
+# функция для преобразования кириллицы из CP1251 в UTF-8
+sub cp1251_to_cyr {
+	my $str = shift;
+	$str =~ y/ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/;
+	return $str;
+}
+
+# функция для преобразования кириллицы из UTF-8 в CP1252+CYR
+sub cyr_to_cp1252pcyr {
+	my $str = shift; # строка для преобразования
+	my $reg = shift; # eu4 — CP1252+CYR-EU4; ck2 — CP1252+CYR-CK2
+	$str =~ s/…/.../g;
+	if ($reg eq 'eu4') {
+		$str =~ s/„/\\\"/g;
+		$str =~ s/“/\\\"/g;
+		$str =~ s/”/\\\"/g;
+		$str =~ s/«/\\\"/g;
+		$str =~ s/»/\\\"/g;
+		$str =~ y/‚‹‘’–—› €ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/''''\-\-' /d;
+		$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
+	}
+	elsif ($reg eq 'ck2') {
+		$str =~ y/‚„‹‘’“”–—› «»^€ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/'"'''""\-\-' ""/d;
+		$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
+	}
+	return $str;
+}
+
+# функция для транслитерирования кириллицы
+sub cyr_to_translit {
+	my $str = shift;
+	$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/ABVGDEËJZIYKLMNOPRSTUFHQCXÇ’ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä/;
+	return $str;
+}
+
+# функция для замены номеров символов в кодировке юникод на номера для CP1252+CYR
+sub id_to_cp1252pcyr {
+	my $str = shift; # строка для преобразования
+	my $reg = shift; # 0 — CP1252+CYR-EU4; 1 — CP1252+CYR-CK2
+	$str =~ s/352/138/;
+	$str =~ s/353/154/;
+	$str =~ s/338/140/;
+	$str =~ s/339/156/;
+	$str =~ s/381/142/;
+	$str =~ s/382/158/;
+	$str =~ s/376/159/;
+	if    ($reg eq 'eu4') {$str =~ s/1041/128/}
+	elsif ($reg eq 'ck2') {$str =~ s/1041/94/}
+	$str =~ s/1043/130/;
+	$str =~ s/1044/131/;
+	$str =~ s/1046/132/;
+	$str =~ s/1047/133/;
+	$str =~ s/1048/134/;
+	$str =~ s/1049/135/;
+	$str =~ s/1051/136/;
+	$str =~ s/1055/137/;
+	$str =~ s/1059/139/;
+	$str =~ s/1060/145/;
+	$str =~ s/1062/146/;
+	$str =~ s/1063/147/;
+	$str =~ s/1064/148/;
+	$str =~ s/1065/149/;
+	$str =~ s/1066/150/;
+	$str =~ s/1067/151/;
+	$str =~ s/1068/152/;
+	$str =~ s/1069/153/;
+	$str =~ s/1070/155/;
+	$str =~ s/1073/160/;
+	$str =~ s/1074/162/;
+	$str =~ s/1075/165/;
+	$str =~ s/1076/166/;
+	$str =~ s/1078/168/;
+	$str =~ s/1079/169/;
+	$str =~ s/1080/170/;
+	$str =~ s/1081/171/;
+	$str =~ s/1082/172/;
+	$str =~ s/1083/174/;
+	$str =~ s/1084/175/;
+	$str =~ s/1085/176/;
+	$str =~ s/1087/177/;
+	$str =~ s/1090/178/;
+	$str =~ s/1091/179/;
+	$str =~ s/1092/180/;
+	$str =~ s/1094/181/;
+	$str =~ s/1095/182/;
+	$str =~ s/1096/183/;
+	$str =~ s/1097/184/;
+	$str =~ s/1098/185/;
+	$str =~ s/1099/186/;
+	$str =~ s/1100/187/;
+	$str =~ s/1101/188/;
+	$str =~ s/1102/190/;
+	$str =~ s/1071/215/;
+	$str =~ s/1103/247/;
+	return $str;
+}
+
 #
 # Подпрограммы поддержки графического интерфейса
 #
-
-sub eu4_invcp {
-	$eu4_decode_button -> configure(-state => 'disabled');
-}
-
-sub eu4_valcp {
-	$eu4_decode_button -> configure(-state => 'normal');
-}
 
 sub translittable {
 =pod
@@ -601,4 +663,28 @@ sub seldir {
 	if (defined $sdir and $sdir ne '') {
 		$$dir = $sdir;
 	}
+}
+
+sub save_page_raised {
+=pod
+Сохраняет в переменную текущую открытую вкладку
+=cut
+	my $rp = shift;
+	$page_raised = $rp;
+}
+
+sub win_busy {
+=pod
+Занять окно
+=cut
+	$status = 'Обработка ...';
+	$mw -> Busy(-recurse => 1);
+}
+
+sub win_unbusy {
+=pod
+Вернуть управление окном пользователю
+=cut
+	$mw -> Unbusy;
+	$status = 'Готово!';
 }
