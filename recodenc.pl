@@ -1,9 +1,4 @@
 #!/usr/bin/perl
-################################################################################
-# ******************************************************************************
-# * 
-# ******************************************************************************
-################################################################################
 # закрытие окна терминала в windows
 BEGIN {
 	if ($^O eq 'MSWin32') {
@@ -17,7 +12,6 @@ use v5.18;
 use warnings;
 use Tk;
 use Tk::LabFrame;
-use Tk::MsgBox;
 use Tk::NoteBook;
 use Cwd;
 use Encode qw(encode decode);
@@ -25,7 +19,7 @@ binmode(STDIN, ":utf8");
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
-my $version = 'v0.3';
+my $version = '0.3.1';
 my $status = ''; # переменная для вывода статуса
 # инициализация конфигурации
 my $page_raised = 'eu4'; # идентификатор поднятой страницы
@@ -60,102 +54,102 @@ unless ($c2flag == 0 or $c2flag == 1) {$c2flag = 0}
 ## рисование интерфейса
 # инициализация переменных для хранения указателей на элементы интерфейса
 my $mw; # главное окно
+my $menu; # панель меню
+my $menu_file; # меню файл
+my $menu_help; # меню помощи
 my $frame_notebook; # фрейм, содержащий вкладки
 my $page_eu4; # вкладка EU4
 my $page_ck2; # вкладка CK2
 my $page_font; # вкладка шрифт
-my $frame_eu4_entry; # фрейм для текстового поля с первым каталогом
-my $frame_eu4_entrysave; # фрейм для тектового поля со вторым каталогом
 my $frame_eu4_buttons; # фрейм с кнопками действий для перекодировки
 my $button_eu4_decode; # кнопка «декодировать»
-my $frame_font_entry; # фрейм для текстового поля с первым каталогом
-my $frame_font_entrysave; # фрейм для тектового поля со вторым каталогом
 my $frame_font_buttons; # фрейм кнопки действия
-my $frame_ck2_entry_origru; # фрейм текстового поля с русской Full-локализацией
-my $frame_ck2_entry_origen; # фрейм текстового поля с локализацией из игры
-my $frame_ck2_entry_saveru; # фрейм текстового поля с каталогом для сохранения результата
 my $frame_ck2_buttons; # фрейм с кнопками
 my $frame_buttons; # фрейм с кнопкой «закрыть»
 
 # создание основного окна
-$mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc $version");
+$mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc v$version");
+	# меню
+	$menu = $mw -> Menu(-type => 'menubar');
+	$mw -> configure(-menu => $menu);
+		# меню Файл
+		$menu_file = $menu -> cascade(-label => 'Файл', -tearoff => 0);
+		$menu_file -> command(-label => 'Выход', -command => [$mw => 'destroy'], -accelerator => 'Ctrl-Q');
+		# меню Справка
+		$menu_help = $menu -> cascade(-label => 'Справка', -compound => 'left', -tearoff => 0);
+		$menu_help -> command(-label => 'Таблица транслитерации', -command => \&translittable);
+		$menu_help -> command(-label => 'Лицензия', -command => \&menu_license, -accelerator => 'Ctrl-Shift-L');
+		$menu_help -> command(-label => 'О программе', -command => \&menu_about, -accelerator => 'Ctrl-Shift-A');
+	# панель со вкладками
 	$frame_notebook = $mw -> NoteBook();
 	# вкладка EU4
 	$page_eu4 = $frame_notebook -> add( 'eu4', -label => 'EU4', -raisecmd => [\&save_page_raised => 'eu4']);
 		# фрейм каталога №1
-		$frame_eu4_entry = $page_eu4 -> Frame;
-		$frame_eu4_entry -> Entry(-width => '50', -textvariable => \$catalogue1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4_entry -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue1]) -> pack(-side => 'right');
+		$page_eu4 -> Label(-text => 'Для обработки:') -> grid(-column => '0', -row => '0', -sticky => 'w');
+		$page_eu4 -> Entry(-width => '50', -textvariable => \$catalogue1) -> grid(-column => '1', -row => '0', -sticky => 'ew');
+		$page_eu4 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue1]) -> grid(-column => '2', -row => '0', -sticky => 'e');
 		# фрейм каталога №2
-		$frame_eu4_entrysave = $page_eu4 -> Frame;
-		$frame_eu4_entrysave -> Checkbutton(-text => 'Сохранить в:', -variable => \$c2flag) -> pack(-side => 'left');
-		$frame_eu4_entrysave -> Entry(-width => '50', -textvariable => \$catalogue2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_eu4_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue2]) -> pack(-side => 'right');
+		$page_eu4 -> Checkbutton(-text => 'Сохранить в:', -variable => \$c2flag) -> grid(-column => '0', -row => '1', -sticky => 'w');
+		$page_eu4 -> Entry(-width => '50', -textvariable => \$catalogue2) -> grid(-column => '1', -row => '1', -sticky => 'ew');
+		$page_eu4 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue2]) -> grid(-column => '2', -row => '1', -sticky => 'e');
 		# фрейм кнопок
-		$frame_eu4_buttons = $page_eu4 -> Frame;
-		$frame_eu4_buttons -> Button(-text => 'Кодировать (CP1251)', -command => [\&encodelocalisation_eu4 => 'cp1251']) -> form(-left => '%0', -right => '%25');
-		$frame_eu4_buttons -> Button(-text => 'Кодировать (CP1252+CYR)', -command => [\&encodelocalisation_eu4 => 'cp1252pcyr']) -> form(-left => '%25', -right => '%50');
-		$frame_eu4_buttons -> Button(-text => 'Транслитерировать', -command => [\&encodelocalisation_eu4 => 'translit']) -> form(-left => '%50', -right => '%75');
-		$frame_eu4_buttons -> Button(-text => 'Таблица транслитерации', -command => \&translittable) -> form(-left => '%75', -right => '%100');
+		$frame_eu4_buttons = $page_eu4 -> Frame -> grid(-column => '0', -columnspan => '3', -row => '2', -sticky => 'ew');
+		$frame_eu4_buttons -> Button(-text => 'Кодировать (CP1251)', -command => [\&encodelocalisation_eu4 => 'cp1251']) -> form(-left => '%0', -right => '%33');
+		$frame_eu4_buttons -> Button(-text => 'Кодировать (CP1252+CYR)', -command => [\&encodelocalisation_eu4 => 'cp1252pcyr']) -> form(-left => '%33', -right => '%66');
+		$frame_eu4_buttons -> Button(-text => 'Транслитерировать', -command => [\&encodelocalisation_eu4 => 'translit']) -> form(-left => '%66', -right => '%100');
+	$page_eu4 -> gridColumnconfigure('1', -weight => '1');
 	# вкладка CK2
 	$page_ck2 = $frame_notebook -> add( 'ck2', -label => 'CK2', -raisecmd => [\&save_page_raised => 'ck2']);
 		# фрейм каталога с русской локализацией (исходной)
-		$frame_ck2_entry_origru = $page_ck2 -> Frame;
-		$frame_ck2_entry_origru -> Label(-text => 'Рус. лок.:') -> pack(-side => 'left');
-		$frame_ck2_entry_origru -> Entry(-textvariable => \$catalogue_ck2_origru) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_ck2_entry_origru -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_origru]) -> pack(-side => 'right');
+		$page_ck2 -> Label(-text => 'Рус. лок.:') -> grid(-column => '0', -row => '0', -sticky => 'w');
+		$page_ck2 -> Entry(-textvariable => \$catalogue_ck2_origru) -> grid(-column => '1', -row => '0', -sticky => 'ew');
+		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_origru]) -> grid(-column => '2', -row => '0', -sticky => 'e');
 		# фрейм каталога с английской локализацией (исходной)
-		$frame_ck2_entry_origen = $page_ck2 -> Frame;
-		$frame_ck2_entry_origen -> Label(-text => 'Анг. лок.:') -> pack(-side => 'left');
-		$frame_ck2_entry_origen -> Entry(-textvariable => \$catalogue_ck2_origen) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_ck2_entry_origen -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_origen]) -> pack(-side => 'right');
+		$page_ck2 -> Label(-text => 'Анг. лок.:') -> grid(-column => '0', -row => '1', -sticky => 'w');
+		$page_ck2 -> Entry(-textvariable => \$catalogue_ck2_origen) -> grid(-column => '1', -row => '1', -sticky => 'ew');
+		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_origen]) -> grid(-column => '2', -row => '1', -sticky => 'e');
 		# фрейм каталога сохранения
-		$frame_ck2_entry_saveru = $page_ck2 -> Frame;
-		$frame_ck2_entry_saveru -> Label(-text => 'Сохранить в:') -> pack(-side => 'left');
-		$frame_ck2_entry_saveru -> Entry(-textvariable => \$catalogue_ck2_saveru) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_ck2_entry_saveru -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_saveru]) -> pack(-side => 'right');
+		$page_ck2 -> Label(-text => 'Сохранить в:') -> grid(-column => '0', -row => '2', -sticky => 'w');
+		$page_ck2 -> Entry(-textvariable => \$catalogue_ck2_saveru) -> grid(-column => '1', -row => '2', -sticky => 'ew');
+		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_saveru]) -> grid(-column => '2', -row => '2', -sticky => 'e');
 		# фрейм кнопок
-		$frame_ck2_buttons = $page_ck2 -> Frame;
+		$frame_ck2_buttons = $page_ck2 -> Frame -> grid(-column => '0', -columnspan => '3', -row => '3', -sticky => 'ew');
 		$frame_ck2_buttons -> Button(-text => 'Кодировать (CP1252+CYR)', -command => [\&encodelocalisation_ck2 => 'cp1252pcyr']) -> form(-left => '%0', -right => '%33');
 		$frame_ck2_buttons -> Button(-text => 'Транслитерировать', -command => [\&encodelocalisation_ck2 => 'translit']) -> form(-left => '%33', -right => '%66');
 		$frame_ck2_buttons -> Button(-text => 'Только тэги', -command => \&ck2_tags) -> form(-left => '%66', -right => '%100');
+	$page_ck2 -> gridColumnconfigure('1', -weight => '1');
 	# вкладка fnt
 	$page_font = $frame_notebook -> add( 'fnt', -label => 'Шрифт', -raisecmd => [\&save_page_raised => 'fnt']);
 		# фрейм каталога №1
-		$frame_font_entry = $page_font -> Frame;
-		$frame_font_entry -> Entry(-width => '50', -textvariable => \$cataloguef1) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_font_entry -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef1]) -> pack(-side => 'right');
+		$page_font -> Label(-text => 'Для обработки:') -> grid(-column => '0', -row => '0', -sticky => 'w');
+		$page_font -> Entry(-width => '50', -textvariable => \$cataloguef1) -> grid(-column => '1', -row => '0', -sticky => 'ew');
+		$page_font -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef1]) -> grid(-column => '2', -row => '0', -sticky => 'e');
 		# фрейм каталога №2
-		$frame_font_entrysave = $page_font ->Frame;
-		$frame_font_entrysave -> Checkbutton(-text => 'Сохранить в:', -variable => \$cf2flag) -> pack(-side => 'left');
-		$frame_font_entrysave -> Entry(-width => '50', -textvariable => \$cataloguef2) -> pack(-expand => '1', -fill => 'x', -side => 'left');
-		$frame_font_entrysave -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef2]) -> pack(-side => 'right');
+		$page_font -> Checkbutton(-text => 'Сохранить в:', -variable => \$cf2flag) -> grid(-column => '0', -row => '1', -sticky => 'w');
+		$page_font -> Entry(-width => '50', -textvariable => \$cataloguef2) -> grid(-column => '1', -row => '1', -sticky => 'ew');
+		$page_font -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef2]) -> grid(-column => '2', -row => '1', -sticky => 'e');
 		# фрейм кнопки
-		$frame_font_buttons = $page_font -> Frame;
+		$frame_font_buttons = $page_font -> Frame -> grid(-column => '0', -columnspan => '3', -row => '2', -sticky => 'ew');
 		$frame_font_buttons -> Button(-text => 'Кодировать', -command => [\&font => '0']) -> form(-left => '%0', -right => '%33');
 		$frame_font_buttons -> Button(-text => 'Кодировать (CP1252+CYR-EU4)', -command => [\&font => 'eu4']) -> form(-left => '%33', -right => '%66');
 		$frame_font_buttons -> Button(-text => 'Кодировать (CP1252+CYR-CK2)', -command => [\&font => 'ck2']) -> form(-left => '%66', -right => '%100');
+	$page_font -> gridColumnconfigure('1', -weight => '1');
+	# статусная строка и кнопка закрытия
 	$frame_buttons = $mw -> Frame;
 	$frame_buttons -> Label(-anchor => 'w' ,-relief => 'flat', -textvariable => \$status) -> pack(-expand => '1', -fill => 'x', -side => 'left'); # строка статуса
 	$frame_buttons -> Button(-text => 'Закрыть', -command => [$mw => 'destroy']) -> pack(-side => 'right');
 # фреймы верхнего уровня
-$frame_notebook -> form(-top => '%0', -left => '%0', -right => '%100');
-$frame_buttons -> form(-top => $frame_notebook, -left => '%1', -right => '%99');
-# фреймы EU4
-$frame_eu4_entry -> form(-top => '%0', -left => '%0', -right => '%100');
-$frame_eu4_entrysave -> form(-top => $frame_eu4_entry, -left => '%0', -right => '%100');
-$frame_eu4_buttons -> form(-top => $frame_eu4_entrysave, -left => '%0', -right => '%100');
-# фреймы CK2
-$frame_ck2_entry_origru -> form(-top => '%0', -left => '%0', -right => '%100');
-$frame_ck2_entry_origen -> form(-top => $frame_ck2_entry_origru, -left => '%0', -right => '%100');
-$frame_ck2_entry_saveru -> form(-top => $frame_ck2_entry_origen, -left => '%0', -right => '%100');
-$frame_ck2_buttons -> form(-top => $frame_ck2_entry_saveru, -left => '%0', -right => '%100');
-# фреймы EU4-fnt
-$frame_font_entry -> form(-top => '%0', -left => '%0', -right => '%100');
-$frame_font_entrysave -> form(-top => $frame_font_entry, -left => '%0', -right => '%100');
-$frame_font_buttons -> form(-top => $frame_font_entrysave, -left => '%0', -right => '%100');
-
+$frame_notebook -> grid(-column => '0', -row => '0', -sticky => 'nsew');
+$frame_buttons -> grid(-column => '0', -row => '1', -sticky => 'sew');
+$mw -> gridColumnconfigure(0, -weight => 1);
+$mw -> gridRowconfigure(0, -weight => 1);
+$mw -> resizable(1,0);
+# упреждающее применение настроек
 $frame_notebook -> raise("$page_raised");
+# привязки к горячим клавишам
+$mw -> bind('<Control-q>' => [$mw => 'destroy']);
+$mw -> bind('<Control-L>' => \&menu_license);
+$mw -> bind('<Control-A>' => \&menu_about);
 
 MainLoop;
 
@@ -212,15 +206,21 @@ sub encodelocalisation_eu4 {
 			}
 			if ($fl eq 0) {push(@strs, "$str\n"); next}
 			# деление строки
-			my $tag = $str;
-			$tag =~ s/^ //;
-			$tag =~ s/:.+$//;
-			my $num = $str;
-			$num =~ s/^ [^:]+://;
-			$num =~ s/ ".+$//;
-			my $txt = $str;
-			$txt =~ s/^.+? "//;
-			$txt =~ s/"( #.*)??$//;
+			$str =~ s/^ //; # удаление начального пробела
+			$str =~ m/^[^:]+:[0-9]*/p; # нахождение тэга и номера
+			$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
+			my ($tag, $num) = split (/:/, ${^MATCH}); # приравнивание тэга и номера соответствующим переменным
+			$str =~ s/^ //; # удаление пробела между номером и текстом
+			$str =~ s/\\\"/\0/g; # замена экранированных кавычек на нулевые символы
+			$str =~ m/^"[^"]*"/p; # нахождение текста //в некоторых строках нет локализации
+			$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
+			my $txt = ${^MATCH}; # приравнивание текста соответствующей переменной
+			$txt =~ s/^"//; # удаление кавычки в начале текста
+			$txt =~ s/"$//; # удаление кавычки в конце текста
+			$txt =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в тексте
+			$str =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в исходной строке
+			my $cmm = $str; # приравнивание остатков строки комментарию
+			$cmm =~ s/ #//; # удаление обозначения комментария в начале комментария
 			# обработка строки
 			if    ($cpfl eq 'cp1251') {
 				$txt = &cyr_to_cp1251($txt);
@@ -232,9 +232,7 @@ sub encodelocalisation_eu4 {
 				$txt = &cyr_to_translit($txt);
 			}
 			# сохранение строки
-			if ($str =~ m/"( #.*)+?$/) {
-				my $cmm = $str;
-				$cmm =~ s/^.+? #//;
+			if (length($cmm) > 0) {
 				push(@strs, " $tag:$num \"$txt\" #$cmm\n");
 				next;
 			}
@@ -541,12 +539,12 @@ sub cyr_to_cp1252pcyr {
 		$str =~ s/”/\\\"/g;
 		$str =~ s/«/\\\"/g;
 		$str =~ s/»/\\\"/g;
-		$str =~ y/‚‹‘’–—› €ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/''''\-\-' /d;
-		$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
+		$str =~ y/‚‹‘’–—› €ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/''''\-\-' /d;
+		$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
 	}
 	elsif ($reg eq 'ck2') {
-		$str =~ y/‚„‹‘’“”–—› «»^€ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/'"'''""\-\-' ""/d;
-		$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
+		$str =~ y/‚„‹‘’“”–—› «»^€ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/'"'''""\-\-' ""/d;
+		$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
 	}
 	return $str;
 }
@@ -628,10 +626,9 @@ sub translittable {
 =pod
 Показывает таблицу транслитерации
 =cut
-	my $d = $mw -> MsgBox(
-	-type => 'ok',
-	-title => 'Таблица транслитерации',
-	-message =>
+	my $d = $mw -> Toplevel(-title => 'Таблица транслитерации');
+	$d -> resizable(0,0);
+	$d -> Label(-justify => 'left', -text =>
 "а — Aa	я — Ää
 о — Oo	ё — Ëë
 у — Uu	ю — Üü
@@ -649,8 +646,8 @@ sub translittable {
 х — Hh	ц — Qq
 ч — Cc	ш — Xx
 щ — Çç	ъ — ’
-ь — Yy");
-	$d -> Show();
+ь — Yy") -> pack();
+	$d -> Button(-text => 'Ок', -command => [$d => 'destroy']) -> pack(-expand => 1, -fill => 'x');
 }
 
 sub seldir {
@@ -687,4 +684,32 @@ sub win_unbusy {
 =cut
 	$mw -> Unbusy;
 	$status = 'Готово!';
+}
+
+sub menu_license {
+=pod
+Вывести текст лицензии
+=cut
+	my $d = $mw -> Toplevel(-title => 'Лицензия');
+	$d -> resizable(0,0);
+	$d -> Label(-justify => 'left', -wraplength => '400', -text => 'The MIT License (MIT)
+
+Copyright © 2015-2016 terqüéz <gz0@ro.ru>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.') -> pack();
+	$d -> Button(-text => 'Ок', -command => [$d => 'destroy']) -> pack(-expand => 1, -fill => 'x');
+}
+
+sub menu_about {
+=pod
+Вывести сообщение о программе
+=cut
+	my $d = $mw -> Toplevel(-title => 'О программе');
+	$d -> resizable(0,0);
+	$d -> Label(-justify => 'left', -wraplength => '400', -text => "Recodenc\nВерсия: $version") -> pack(-side => 'left');
+	$d -> Button(-text => 'Ок', -command => [$d => 'destroy']) -> pack(-side => 'left');
 }
