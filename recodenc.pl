@@ -11,7 +11,6 @@ use utf8;
 use v5.18;
 use warnings;
 use Tk;
-use Tk::LabFrame;
 use Tk::NoteBook;
 use Cwd;
 use Encode qw(encode decode);
@@ -648,6 +647,7 @@ sub translittable {
 щ — Çç	ъ — ’
 ь — Yy") -> pack();
 	$d -> Button(-text => 'Ок', -command => [$d => 'destroy']) -> pack(-expand => 1, -fill => 'x');
+	$d -> focus;
 }
 
 sub seldir {
@@ -702,6 +702,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.') -> pack();
 	$d -> Button(-text => 'Ок', -command => [$d => 'destroy']) -> pack(-expand => 1, -fill => 'x');
+	$d -> focus;
 }
 
 sub menu_about {
@@ -712,4 +713,5 @@ sub menu_about {
 	$d -> resizable(0,0);
 	$d -> Label(-justify => 'left', -wraplength => '400', -text => "Recodenc\nВерсия: $version") -> pack(-side => 'left');
 	$d -> Button(-text => 'Ок', -command => [$d => 'destroy']) -> pack(-side => 'left');
+	$d -> focus;
 }
