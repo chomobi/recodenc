@@ -147,8 +147,6 @@ $mw -> resizable(1,0);
 $frame_notebook -> raise("$page_raised");
 # привязки к горячим клавишам
 $mw -> bind('<Control-q>' => [$mw => 'destroy']);
-$mw -> bind('<Control-L>' => \&menu_license);
-$mw -> bind('<Control-A>' => \&menu_about);
 
 MainLoop;
 
