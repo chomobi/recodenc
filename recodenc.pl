@@ -12,7 +12,8 @@ use v5.18;
 use warnings;
 use Tk;
 use Tk::NoteBook;
-use Cwd;
+use FindBin;
+use Config::General;
 use Encode qw(encode decode);
 binmode(STDIN, ":utf8");
 binmode(STDOUT, ":utf8");
@@ -21,35 +22,55 @@ binmode(STDERR, ":utf8");
 my $version = '0.3.1';
 my $status = ''; # переменная для вывода статуса
 # инициализация конфигурации
-my $page_raised = 'eu4'; # идентификатор поднятой страницы
-my $c2flag = '0'; # 0 = не сохранять в др. каталог; 1 = сохранять
-my $catalogue1 = ''; # каталог 1
-my $catalogue2 = ''; # каталог 2
-my $cf2flag = '0'; # 0 = не сохранять в др. каталог; 1 = сохранять
-my $cataloguef1 = ''; # каталог шрифтов 1
-my $cataloguef2 = ''; # каталог шрифтов 2
-my $catalogue_ck2_origru = ''; # каталог с русской локализацией CK2 (Full)
-my $catalogue_ck2_origen = ''; # каталог с английской локализацией CK2
-my $catalogue_ck2_saveru = ''; # каталог для сохранения скомпилированной Lite-локализации
+my %config;
+#page — идентификатор поднятой страницы
+#eu4_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#eu4_cat1 — каталог 1
+#eu4_cat2 — каталог 2
+#fnt_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#fnt_cat1 — каталог шрифтов 1
+#fnt_cat2 — каталог шрифтов 2
+#ck2_origru — каталог с русской локализацией CK2 (Full)
+#ck2_origen — каталог с английской локализацией CK2
+#ck2_saveru — каталог для сохранения скомпилированной Lite-локализации
 # загрузка конфигурации
-my $path = Cwd::realpath($0);
-$path =~ s/.pl$/.conf/;
-if (open(my $file_conf, '<:unix:perlio:utf8', $path)) {
-	$page_raised = <$file_conf>; chomp($page_raised);
-	$c2flag = <$file_conf>; chomp($c2flag);
-	$catalogue1 = <$file_conf>; chomp($catalogue1);
-	$catalogue2 = <$file_conf>; chomp($catalogue2);
-	$cf2flag = <$file_conf>; chomp($cf2flag);
-	$cataloguef1 = <$file_conf>; chomp($cataloguef1);
-	$cataloguef2 = <$file_conf>; chomp($cataloguef2);
-	$catalogue_ck2_origru = <$file_conf>; chomp($catalogue_ck2_origru);
-	$catalogue_ck2_origen = <$file_conf>; chomp($catalogue_ck2_origen);
-	$catalogue_ck2_saveru = <$file_conf>; chomp($catalogue_ck2_saveru);
-	close($file_conf);
+my $path;
+my $cf_file = $FindBin::RealScript;
+my $cf_index = index $cf_file, '.';
+if ($cf_index < 0) {
+	$path = "$FindBin::RealBin/$cf_file.conf";
 }
+else {
+	$cf_file =~ s/\.[^.]*$//;
+	$path = "$FindBin::RealBin/$cf_file.conf";
+}
+unless (-e $path) { # если файл не создан, создать
+	open(TMPFH, '>:utf8', $path);
+	close TMPFH;
+}
+my $cf = Config::General -> new(
+	-ConfigFile => "$path",
+	-AllowMultiOptions => 'no',
+	-UseApacheInclude => 'no',
+	-AutoTrue => '1',
+	-SplitPolicy => 'custom',
+	-SplitDelimiter => ':',
+	-StoreDelimiter => ':',
+	-UTF8 => '1',
+	-SaveSorted => '1');
+%config = $cf -> getall();
 # проверка загруженной конфигурации
-unless ($page_raised eq 'eu4' or $page_raised eq 'ck2' or $page_raised eq 'fnt') {$page_raised = 'eu4'}
-unless ($c2flag == 0 or $c2flag == 1) {$c2flag = 0}
+if (! defined($config{'page'})) {$config{'page'} = 'eu4'}
+elsif ($config{'page'} ne 'eu4' and $config{'page'} ne 'ck2' and $config{'page'} ne 'fnt') {$config{'page'} = 'eu4'}
+if (! defined($config{'eu4_c2'})) {$config{'eu4_c2'} = 0}
+elsif ($config{'eu4_c2'} != 0 and $config{'eu4_c2'} != 1) {$config{'eu4_c2'} = 0}
+if (! defined($config{'fnt_c2'})) {$config{'fnt_c2'} = 0}
+elsif ($config{'fnt_c2'} != 0 and $config{'fnt_c2'} != 1) {$config{'fnt_c2'} = 0}
+# инициализация пустыми значениями
+for my $key (sort keys %config) {
+	unless (defined($config{$key})) {$config{$key} = ''}
+#	print "$key\t$config{$key}\n";
+};
 ## рисование интерфейса
 # инициализация переменных для хранения указателей на элементы интерфейса
 my $mw; # главное окно
@@ -61,7 +82,6 @@ my $page_eu4; # вкладка EU4
 my $page_ck2; # вкладка CK2
 my $page_font; # вкладка шрифт
 my $frame_eu4_buttons; # фрейм с кнопками действий для перекодировки
-my $button_eu4_decode; # кнопка «декодировать»
 my $frame_font_buttons; # фрейм кнопки действия
 my $frame_ck2_buttons; # фрейм с кнопками
 my $frame_buttons; # фрейм с кнопкой «закрыть»
@@ -85,12 +105,12 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc v$version");
 	$page_eu4 = $frame_notebook -> add( 'eu4', -label => 'EU4', -raisecmd => [\&save_page_raised => 'eu4']);
 		# фрейм каталога №1
 		$page_eu4 -> Label(-text => 'Для обработки:') -> grid(-column => '0', -row => '0', -sticky => 'w');
-		$page_eu4 -> Entry(-width => '50', -textvariable => \$catalogue1) -> grid(-column => '1', -row => '0', -sticky => 'ew');
-		$page_eu4 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue1]) -> grid(-column => '2', -row => '0', -sticky => 'e');
+		$page_eu4 -> Entry(-width => '50', -textvariable => \$config{'eu4_cat1'}) -> grid(-column => '1', -row => '0', -sticky => 'ew');
+		$page_eu4 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$config{'eu4_cat1'}]) -> grid(-column => '2', -row => '0', -sticky => 'e');
 		# фрейм каталога №2
-		$page_eu4 -> Checkbutton(-text => 'Сохранить в:', -variable => \$c2flag) -> grid(-column => '0', -row => '1', -sticky => 'w');
-		$page_eu4 -> Entry(-width => '50', -textvariable => \$catalogue2) -> grid(-column => '1', -row => '1', -sticky => 'ew');
-		$page_eu4 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue2]) -> grid(-column => '2', -row => '1', -sticky => 'e');
+		$page_eu4 -> Checkbutton(-text => 'Сохранить в:', -variable => \$config{'eu4_c2'}) -> grid(-column => '0', -row => '1', -sticky => 'w');
+		$page_eu4 -> Entry(-width => '50', -textvariable => \$config{'eu4_cat2'}) -> grid(-column => '1', -row => '1', -sticky => 'ew');
+		$page_eu4 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$config{'eu4_cat2'}]) -> grid(-column => '2', -row => '1', -sticky => 'e');
 		# фрейм кнопок
 		$frame_eu4_buttons = $page_eu4 -> Frame -> grid(-column => '0', -columnspan => '3', -row => '2', -sticky => 'ew');
 		$frame_eu4_buttons -> Button(-text => 'Кодировать (CP1251)', -command => [\&encodelocalisation_eu4 => 'cp1251']) -> form(-left => '%0', -right => '%33');
@@ -101,16 +121,16 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc v$version");
 	$page_ck2 = $frame_notebook -> add( 'ck2', -label => 'CK2', -raisecmd => [\&save_page_raised => 'ck2']);
 		# фрейм каталога с русской локализацией (исходной)
 		$page_ck2 -> Label(-text => 'Рус. лок.:') -> grid(-column => '0', -row => '0', -sticky => 'w');
-		$page_ck2 -> Entry(-textvariable => \$catalogue_ck2_origru) -> grid(-column => '1', -row => '0', -sticky => 'ew');
-		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_origru]) -> grid(-column => '2', -row => '0', -sticky => 'e');
+		$page_ck2 -> Entry(-textvariable => \$config{'ck2_origru'}) -> grid(-column => '1', -row => '0', -sticky => 'ew');
+		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$config{'ck2_origru'}]) -> grid(-column => '2', -row => '0', -sticky => 'e');
 		# фрейм каталога с английской локализацией (исходной)
 		$page_ck2 -> Label(-text => 'Анг. лок.:') -> grid(-column => '0', -row => '1', -sticky => 'w');
-		$page_ck2 -> Entry(-textvariable => \$catalogue_ck2_origen) -> grid(-column => '1', -row => '1', -sticky => 'ew');
-		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_origen]) -> grid(-column => '2', -row => '1', -sticky => 'e');
+		$page_ck2 -> Entry(-textvariable => \$config{'ck2_origen'}) -> grid(-column => '1', -row => '1', -sticky => 'ew');
+		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$config{'ck2_origen'}]) -> grid(-column => '2', -row => '1', -sticky => 'e');
 		# фрейм каталога сохранения
 		$page_ck2 -> Label(-text => 'Сохранить в:') -> grid(-column => '0', -row => '2', -sticky => 'w');
-		$page_ck2 -> Entry(-textvariable => \$catalogue_ck2_saveru) -> grid(-column => '1', -row => '2', -sticky => 'ew');
-		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$catalogue_ck2_saveru]) -> grid(-column => '2', -row => '2', -sticky => 'e');
+		$page_ck2 -> Entry(-textvariable => \$config{'ck2_saveru'}) -> grid(-column => '1', -row => '2', -sticky => 'ew');
+		$page_ck2 -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$config{'ck2_saveru'}]) -> grid(-column => '2', -row => '2', -sticky => 'e');
 		# фрейм кнопок
 		$frame_ck2_buttons = $page_ck2 -> Frame -> grid(-column => '0', -columnspan => '3', -row => '3', -sticky => 'ew');
 		$frame_ck2_buttons -> Button(-text => 'Кодировать (CP1252+CYR)', -command => [\&encodelocalisation_ck2 => 'cp1252pcyr']) -> form(-left => '%0', -right => '%33');
@@ -121,12 +141,12 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc v$version");
 	$page_font = $frame_notebook -> add( 'fnt', -label => 'Шрифт', -raisecmd => [\&save_page_raised => 'fnt']);
 		# фрейм каталога №1
 		$page_font -> Label(-text => 'Для обработки:') -> grid(-column => '0', -row => '0', -sticky => 'w');
-		$page_font -> Entry(-width => '50', -textvariable => \$cataloguef1) -> grid(-column => '1', -row => '0', -sticky => 'ew');
-		$page_font -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef1]) -> grid(-column => '2', -row => '0', -sticky => 'e');
+		$page_font -> Entry(-width => '50', -textvariable => \$config{'fnt_cat1'}) -> grid(-column => '1', -row => '0', -sticky => 'ew');
+		$page_font -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$config{'fnt_cat1'}]) -> grid(-column => '2', -row => '0', -sticky => 'e');
 		# фрейм каталога №2
-		$page_font -> Checkbutton(-text => 'Сохранить в:', -variable => \$cf2flag) -> grid(-column => '0', -row => '1', -sticky => 'w');
-		$page_font -> Entry(-width => '50', -textvariable => \$cataloguef2) -> grid(-column => '1', -row => '1', -sticky => 'ew');
-		$page_font -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$cataloguef2]) -> grid(-column => '2', -row => '1', -sticky => 'e');
+		$page_font -> Checkbutton(-text => 'Сохранить в:', -variable => \$config{'fnt_c2'}) -> grid(-column => '0', -row => '1', -sticky => 'w');
+		$page_font -> Entry(-width => '50', -textvariable => \$config{'fnt_cat2'}) -> grid(-column => '1', -row => '1', -sticky => 'ew');
+		$page_font -> Button(-text => 'Выбрать каталог', -command => [\&seldir => \$config{'fnt_cat2'}]) -> grid(-column => '2', -row => '1', -sticky => 'e');
 		# фрейм кнопки
 		$frame_font_buttons = $page_font -> Frame -> grid(-column => '0', -columnspan => '3', -row => '2', -sticky => 'ew');
 		$frame_font_buttons -> Button(-text => 'Кодировать', -command => [\&font => '0']) -> form(-left => '%0', -right => '%33');
@@ -144,27 +164,14 @@ $mw -> gridColumnconfigure(0, -weight => 1);
 $mw -> gridRowconfigure(0, -weight => 1);
 $mw -> resizable(1,0);
 # упреждающее применение настроек
-$frame_notebook -> raise("$page_raised");
+$frame_notebook -> raise("$config{page}");
 # привязки к горячим клавишам
 $mw -> bind('<Control-q>' => [$mw => 'destroy']);
 
 MainLoop;
 
 # запись конфигурации
-open(my $file_conf_o, '>:unix:perlio:utf8', $path);
-my @strscf;
-push(@strscf, "$page_raised\n");
-push(@strscf, "$c2flag\n");
-push(@strscf, "$catalogue1\n");
-push(@strscf, "$catalogue2\n");
-push(@strscf, "$cf2flag\n");
-push(@strscf, "$cataloguef1\n");
-push(@strscf, "$cataloguef2\n");
-push(@strscf, "$catalogue_ck2_origru\n");
-push(@strscf, "$catalogue_ck2_origen\n");
-push(@strscf, "$catalogue_ck2_saveru\n");
-print $file_conf_o @strscf;
-close $file_conf_o;
+$cf -> save_file($path, \%config);
 
 ################
 # ПОДПРОГРАММЫ #
@@ -173,9 +180,9 @@ close $file_conf_o;
 # ПРОЦЕДУРА
 sub encodelocalisation_eu4 {
 	my $cpfl = shift; # cp1251 — CP1251; cp1252pcyr — CP1252+CYR; translit — транслит
-	my $c2fl = $c2flag; # 0 — перезаписать; 1 — сохранить в другое место
-	my $dir1 = $catalogue1; # каталог №1
-	my $dir2 = $catalogue2; # каталог №2
+	my $c2fl = $config{'eu4_c2'}; # 0 — перезаписать; 1 — сохранить в другое место
+	my $dir1 = $config{'eu4_cat1'}; # каталог №1
+	my $dir2 = $config{'eu4_cat2'}; # каталог №2
 	# проверка параметров
 	unless (-d $dir1) {$status = 'Каталог с исходными данными не найден!'; return 1};
 	if ($c2fl == 1) {unless (-d $dir2) {$status = 'Каталог для сохранения не найден!'; return 1}};
@@ -192,7 +199,7 @@ sub encodelocalisation_eu4 {
 		push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
 		while (my $str = <$file>) {
 			chomp $str;
-			if ($str =~ m/\r$/) {$str =~ s/\r$//} # защита от идиотов, подающих на вход CRLF
+			if ($str =~ m/\r$/) {$str =~ s/\r$//} # защита от дебилов, подающих на вход CRLF
 			if ($str =~ m/^\x{FEFF}/) {$str =~ s/^\x{FEFF}//} # удаление BOM из обрабатываемых строк
 			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next} # запоминание и пропуск необрабатываемых строк
 			if ($str =~ m/^l_/) {
@@ -254,9 +261,9 @@ sub encodelocalisation_eu4 {
 # ПРОЦЕДУРА
 sub encodelocalisation_ck2 {
 	my $cpfl = shift; # cp1252pcyr — CP1252+CYR; translit — транслит
-	my $dir_orig_en = $catalogue_ck2_origen;
-	my $dir_orig_ru = $catalogue_ck2_origru;
-	my $dir_save_ru = $catalogue_ck2_saveru;
+	my $dir_orig_en = $config{'ck2_origen'};
+	my $dir_orig_ru = $config{'ck2_origru'};
+	my $dir_save_ru = $config{'ck2_saveru'};
 	unless (-d $dir_orig_en) {$status = 'Не найден каталог с английской локализацией!'; return 1}
 	unless (-d $dir_orig_ru) {$status = 'Не найден каталог с русской локализацией!'; return 1}
 	unless (-d $dir_save_ru) {$status = 'Не найден каталог для сохранения локализации!'; return 1}
@@ -347,9 +354,9 @@ sub encodelocalisation_ck2 {
 # Вывод тэгов локализации CK2
 # ПРОЦЕДУРА
 sub ck2_tags {
-	my $dir_orig_en = $catalogue_ck2_origen;
-	my $dir_orig_ru = $catalogue_ck2_origru;
-	my $dir_save_ru = $catalogue_ck2_saveru;
+	my $dir_orig_en = $config{'ck2_origen'};
+	my $dir_orig_ru = $config{'ck2_origru'};
+	my $dir_save_ru = $config{'ck2_saveru'};
 	unless (-d $dir_orig_en) {$status = 'Не найден каталог с английской локализацией!'; return 1}
 	unless (-d $dir_orig_ru) {$status = 'Не найден каталог с русской локализацией!'; return 1}
 	unless (-d $dir_save_ru) {$status = 'Не найден каталог для сохранения локализации!'; return 1}
@@ -419,9 +426,9 @@ sub ck2_tags {
 # ПРОЦЕДУРА
 sub font { # изменяет fnt-карты шрифтов
 	my $cpfl = shift;#0 — не трогать; eu4 — обработка CP1252+CYR-EU4; ck2 — обработка CP1252+CYR-CK2
-	my $c2fl = $cf2flag;#0 — перезаписать; 1 — сохранить в другое место
-	my $dir1 = $cataloguef1;#каталог №1
-	my $dir2 = $cataloguef2;#каталог №2
+	my $c2fl = $config{'fnt_c2'};#0 — перезаписать; 1 — сохранить в другое место
+	my $dir1 = $config{'fnt_cat1'};#каталог №1
+	my $dir2 = $config{'fnt_cat2'};#каталог №2
 	unless (-d $dir1) {$status = 'Каталог с исходными данными не найден!'; return 1}
 	if ($c2fl == 1) {unless (-d $dir2) {$status = 'Каталог для сохранения не найден!'; return 1}}
 	&win_busy();
@@ -665,7 +672,7 @@ sub save_page_raised {
 Сохраняет в переменную текущую открытую вкладку
 =cut
 	my $rp = shift;
-	$page_raised = $rp;
+	$config{'page'} = $rp;
 }
 
 sub win_busy {
