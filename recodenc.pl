@@ -97,8 +97,8 @@ $mw = MainWindow -> new(-class => 'Recodenc', -title => "Recodenc v$version");
 		# меню Справка
 		$menu_help = $menu -> cascade(-label => 'Справка', -compound => 'left', -tearoff => 0);
 		$menu_help -> command(-label => 'Таблица транслитерации', -command => \&translittable);
-		$menu_help -> command(-label => 'Лицензия', -command => \&menu_license, -accelerator => 'Ctrl-Shift-L');
-		$menu_help -> command(-label => 'О программе', -command => \&menu_about, -accelerator => 'Ctrl-Shift-A');
+		$menu_help -> command(-label => 'Лицензия', -command => \&menu_license);
+		$menu_help -> command(-label => 'О программе', -command => \&menu_about);
 	# панель со вкладками
 	$frame_notebook = $mw -> NoteBook();
 	# вкладка EU4
