@@ -77,7 +77,7 @@ done
 find "$loc/pd" -type f -print0 | xargs -0 -I{} -P$(nproc) -n1 mv \{} "$loc"
 rm -rf "$loc/pd"
 # очистка свободного места
-find "$loc" -type f -print0 | xargs -0 -I{} -P$(nproc) -n1 sed -i "s/\^//g;s/‚/,/g;s/ƒ/f/g;s/„/\"/g;s/…/.../g;s/†//g;s/‡//g;s/‰//g;s/ˆ//g;s/‹//g;s/‘/'/g;s/’/'/g;s/“/\"/g;s/”/\"/g;s/•//g;s/–/-/g;s/—/-/g;s/˜//g;s/™//g;s/›//g;s/ / /g;s/¢//g;s/¥//g;s/¦//g;s/¨//g;s/©//g;s/ª/a/g;s/«/\"/g;s/¬//g;s/®//g;s/¯//g;s/°//g;s/±//g;s/²//g;s/³//g;s/´/'/g;s/µ//g;s/¶//g;s/·//g;s/¸//g;s/¹//g;s/º/o/g;s/»/\"/g;s/¼//g;s/¾//g;s/×//g;s/÷//g" \{}
+find "$loc" -type f -print0 | xargs -0 -I{} -P$(nproc) -n1 sed -i "s/^//g;s/€//g;s/‚/'/g;s/ƒ//g;s/„/\"/g;s/…/.../g;s/†//g;s/‡//g;s/ˆ//g;s/‰//g;s/‹/'/g;s/‘/'/g;s/’/'/g;s/“/\"/g;s/”/\"/g;s/•//g;s/–/-/g;s/—/-/g;s/˜//g;s/™//g;s/›/'/g;s/ / /g;s/¢//g;s/¥//g;s/¦//g;s/¨//g;s/©//g;s/ª//g;s/«/\"/g;s/¬//g;s/®//g;s/¯//g;s/°//g;s/±//g;s/²//g;s/³//g;s/´//g;s/µ//g;s/¶//g;s/·//g;s/¸//g;s/¹//g;s/º//g;s/»/\"/g;s/¼//g;s/½//g;s/¾//g;s/×//g;s/÷//g;" \{}
 # преобразование кириллицы к виду в модифицированной кодировке
 find "$loc" -type f -print0 | xargs -0 -I{} -P$(nproc) -n1 sed -i 'y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/' \{}
 # перекодировка в windows-1252
