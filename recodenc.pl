@@ -10,16 +10,17 @@ BEGIN {
 use utf8;
 use v5.18;
 use warnings;
-use Tk;
-use Tk::NoteBook;
+use Tkx;
 use FindBin;
 use Config::General;
 use Encode qw(encode decode);
+# некроссплатформенно
 binmode(STDIN, ":utf8");
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
+# /некроссплатформенно
 
-my $version = '0.3.1.1';
+my $version = '0.4.0';
 my $status = ''; # переменная для вывода статуса
 # инициализация конфигурации
 my %config;
@@ -60,8 +61,8 @@ my $cf = Config::General -> new(
 	-SaveSorted => '1');
 %config = $cf -> getall();
 # проверка загруженной конфигурации
-if (! defined($config{'page'})) {$config{'page'} = 'eu4'}
-elsif ($config{'page'} ne 'eu4' and $config{'page'} ne 'ck2' and $config{'page'} ne 'fnt') {$config{'page'} = 'eu4'}
+if (! defined($config{'page'})) {$config{'page'} = 0}
+elsif ($config{'page'} != 0 and $config{'page'} != 1 and $config{'page'} != 2) {$config{'page'} = 0}
 if (! defined($config{'eu4_c2'})) {$config{'eu4_c2'} = 0}
 elsif ($config{'eu4_c2'} != 0 and $config{'eu4_c2'} != 1) {$config{'eu4_c2'} = 0}
 if (! defined($config{'fnt_c2'})) {$config{'fnt_c2'} = 0}
