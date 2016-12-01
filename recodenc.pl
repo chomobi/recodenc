@@ -28,29 +28,28 @@ use utf8;
 use v5.18;
 use warnings;
 use Tkx;
-use FindBin;
-use Config::General;
 use Encode qw(encode decode);
 use Encode::Locale;
 binmode(STDIN, ":encoding(console_in)");
 binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
 
-my $version = '0.4.0';
+my $version = '0.4.1';
 my $status = ''; # переменная для вывода статуса
-# инициализация конфигурации
-my %config;
-#page — идентификатор поднятой страницы
-#eu4_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
-#eu4_cat1 — каталог 1
-#eu4_cat2 — каталог 2
-#fnt_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
-#fnt_cat1 — каталог шрифтов 1
-#fnt_cat2 — каталог шрифтов 2
-#ck2_origru — каталог с русской локализацией CK2 (Full)
-#ck2_origen — каталог с английской локализацией CK2
-#ck2_saveru — каталог для сохранения скомпилированной Lite-локализации
-#cnv_cat — каталог для обработки конвертором мода сохранений
+# Опции конфигурационного файла:
+#	page — идентификатор поднятой страницы 0..3
+#	eu4_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#	eu4_cat1 — каталог №1
+#	eu4_cat2 — каталог №2
+#	ck2_origru — каталог с русской локализацией CK2 (Full)
+#	ck2_origen — каталог с английской локализацией CK2
+#	ck2_saveru — каталог для сохранения скомпилированной Lite-локализации
+#	fnt_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#	fnt_cat1 — каталог шрифтов №1
+#	fnt_cat2 — каталог шрифтов №2
+#	cnv_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#	cnv_cat1 — каталог №1 для обработки конвертором мода сохранений
+#	cnv_cat2 — каталог №2
 ## загрузка конфигурации
 my $conf_path_dir; # имя каталога файла конфигурации
 my $conf_path_dir_encoded; # имя каталога файла конфигурации в кодировке локальной машины
@@ -73,33 +72,34 @@ unless (-d $conf_path_dir_encoded) {
 }
 $conf_path_file = "$conf_path_dir/recodenc.conf";
 $conf_path_file_encoded = encode('locale_fs', $conf_path_file);
-unless (-e $conf_path_file_encoded) { # если файл не создан, создать
-	open(TMPFH, '>:utf8', $conf_path_file_encoded);
-	close TMPFH;
-}
-my $cf = Config::General -> new(
-	-ConfigFile => "$conf_path_file_encoded",
-	-AllowMultiOptions => 'no',
-	-UseApacheInclude => 'no',
-	-AutoTrue => '1',
-	-SplitPolicy => 'custom',
-	-SplitDelimiter => ':',
-	-StoreDelimiter => ':',
-	-UTF8 => '1',
-	-SaveSorted => '1');
-%config = $cf -> getall();
+my %config = &config_read($conf_path_file_encoded);
 # проверка загруженной конфигурации
+for my $key (sort keys %config) {
+	unless ($key eq 'page' or
+	        $key eq 'eu4_c2' or
+	        $key eq 'eu4_cat1' or
+	        $key eq 'eu4_cat2' or
+	        $key eq 'ck2_origru' or
+	        $key eq 'ck2_origen' or
+	        $key eq 'ck2_saveru' or
+	        $key eq 'fnt_c2' or
+	        $key eq 'fnt_cat1' or
+	        $key eq 'fnt_cat2' or
+	        $key eq 'cnv_c2' or
+	        $key eq 'cnv_cat1' or
+	        $key eq 'cnv_cat2') {
+		delete($config{$key});
+	}
+	unless (defined($config{$key})) {$config{$key} = ''} # инициализация пустыми значениями
+}
 if (! defined($config{page})) {$config{page} = 0}
 elsif ($config{page} < 0 and $config{page} > 3) {$config{page} = 0}
 if (! defined($config{eu4_c2})) {$config{eu4_c2} = 0}
 elsif ($config{eu4_c2} != 0 and $config{eu4_c2} != 1) {$config{eu4_c2} = 0}
 if (! defined($config{fnt_c2})) {$config{fnt_c2} = 0}
 elsif ($config{fnt_c2} != 0 and $config{fnt_c2} != 1) {$config{fnt_c2} = 0}
-# инициализация пустыми значениями
-for my $key (sort keys %config) {
-	unless (defined($config{$key})) {$config{$key} = ''}
-#	print "$key\t$config{$key}\n";
-};
+if (! defined($config{cnv_c2})) {$config{cnv_c2} = 0}
+elsif ($config{cnv_c2} != 0 and $config{cnv_c2} != 1) {$config{cnv_c2} = 0}
 ## рисование интерфейса
 # инициализация переменных для хранения указателей на элементы интерфейса
 my $mw; # главное окно
@@ -112,6 +112,7 @@ my $page_ck2; # вкладка CK2
 my $page_fnt; # вкладка шрифт
 my $page_cnv; # вкладка сохранений
 my $frame_eu4_buttons; # фрейм с кнопками действий для перекодировки
+my $frame_eu4_buttons2;
 my $frame_ck2_buttons; # фрейм с кнопками
 my $frame_fnt_buttons; # фрейм кнопки действия
 my $frame_cnv_buttons; # фрейм кнопок
@@ -131,9 +132,11 @@ $mw -> g_wm_title("Recodenc v$version");
 		# меню «Справка»
 		$menu_help = $menu -> new_menu();
 		$menu -> m_add_cascade(-label => 'Справка', -menu => $menu_help);
+		$menu_help -> m_add_command(-label => 'Краткая справка', -command => \&helpwindow);
 		$menu_help -> m_add_command(-label => 'Таблица транслитерации', -command => \&translittable);
-		$menu_help -> m_add_command(-label => 'Лицензия', -command => \&menu_license);
+		$menu_help -> m_add_separator();
 		$menu_help -> m_add_command(-label => 'О программе', -command => \&menu_about);
+		$menu_help -> m_add_command(-label => 'Лицензия', -command => \&menu_license);
 	# вкладки
 	$frame_notebook = $mw -> new_ttk__notebook();
 	$frame_notebook -> g_grid(-column => 0, -row => 0, -sticky => 'nsew');
@@ -154,10 +157,15 @@ $mw -> g_wm_title("Recodenc v$version");
 		$frame_eu4_buttons -> new_ttk__button(-text => 'Кодировать (CP1251)', -command => [\&encodelocalisation_eu4, 'cp1251']) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
 		$frame_eu4_buttons -> new_ttk__button(-text => 'Кодировать (CP1252+CYR)', -command => [\&encodelocalisation_eu4, 'cp1252pcyr']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
 		$frame_eu4_buttons -> new_ttk__button(-text => 'Транслитерировать', -command => [\&encodelocalisation_eu4, 'translit']) -> g_grid(-column => 2, -row => 0, -sticky => 'ew');
-		$frame_eu4_buttons -> new_ttk__button(-text => 'Декодировать (CP1251)', -command => [\&encodelocalisation_eu4, 'd_cp1251']) -> g_grid(-column => 0, -columnspan => 3, -row => 1, -sticky => 'ew');
 		$frame_eu4_buttons -> g_grid_columnconfigure(0, -weight => 1);
 		$frame_eu4_buttons -> g_grid_columnconfigure(1, -weight => 1);
 		$frame_eu4_buttons -> g_grid_columnconfigure(2, -weight => 1);
+		$frame_eu4_buttons2 = $page_eu4 -> new_ttk__frame();
+		$frame_eu4_buttons2 -> g_grid(-column => 0, -columnspan => 3, -row => 3, -sticky => 'ew');
+		$frame_eu4_buttons2 -> new_ttk__button(-text => 'Декодировать (CP1251)', -command => [\&encodelocalisation_eu4, 'd_cp1251']) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+		$frame_eu4_buttons2 -> new_ttk__button(-text => 'Декодировать (CP1252+CYR)', -command => [\&encodelocalisation_eu4, 'd_cp1252pcyr']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$frame_eu4_buttons2 -> g_grid_columnconfigure(0, -weight => 1);
+		$frame_eu4_buttons2 -> g_grid_columnconfigure(1, -weight => 1);
 	$page_eu4 -> g_grid_columnconfigure(1, -weight => 1);
 	# вкладка CK2
 	$page_ck2 = $mw -> new_ttk__frame();
@@ -210,8 +218,12 @@ $mw -> g_wm_title("Recodenc v$version");
 	$frame_notebook -> m_add($page_cnv, -text => 'Мод сохранения', -sticky => 'nsew');
 		# каталог №1
 		$page_cnv -> new_ttk__label(-text => 'Для обработки:') -> g_grid(-column => 0, -row => 0, -sticky => 'w');
-		$page_cnv -> new_ttk__entry(-width => 50, -textvariable => \$config{cnv_cat}) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
-		$page_cnv -> new_ttk__button(-text => 'Выбрать каталог', -command => [\&seldir, \$config{cnv_cat}]) -> g_grid(-column => 2, -row => 0, -sticky => 'e');
+		$page_cnv -> new_ttk__entry(-width => 50, -textvariable => \$config{cnv_cat1}) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$page_cnv -> new_ttk__button(-text => 'Выбрать каталог', -command => [\&seldir, \$config{cnv_cat1}]) -> g_grid(-column => 2, -row => 0, -sticky => 'e');
+		# каталог №2
+		$page_cnv -> new_ttk__checkbutton(-text => 'Сохранить в:', -variable => \$config{cnv_c2}) -> g_grid(-column => 0, -row => 1, -sticky => 'w');
+		$page_cnv -> new_ttk__entry(-width => 50, -textvariable => \$config{cnv_cat2}) -> g_grid(-column => 1, -row => 1, -sticky => 'ew');
+		$page_cnv -> new_ttk__button(-text => 'Выбрать каталог', -command => [\&seldir, \$config{cnv_cat2}]) -> g_grid(-column => 2, -row => 1, -sticky => 'e');
 		# кнопки
 		$frame_cnv_buttons = $page_cnv -> new_ttk__frame();
 		$frame_cnv_buttons -> g_grid(-column => 0, -columnspan => 3, -row => 2, -sticky => 'ew');
@@ -219,6 +231,8 @@ $mw -> g_wm_title("Recodenc v$version");
 		$frame_cnv_buttons -> new_ttk__button(-text => 'Конвертировать (CP1252+CYR)', -command => [\&mod_save_conv, 'cp1252pcyr']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
 		$frame_cnv_buttons -> g_grid_columnconfigure(0, -weight => 1);
 		$frame_cnv_buttons -> g_grid_columnconfigure(1, -weight => 1);
+		# предупреждение
+		$page_cnv -> new_ttk__label(-text => 'Представленные здесь инструменты, скорее всего, не работаю, т. к. мне не на чем их отлаживать. Ждём релиза полных переводов CK2 и EU4.', -foreground => 'red', -justify => 'left', -wraplength => 600) -> g_grid(-column => 0, -columnspan => 3, -row => 3, -sticky => 'ew');
 	$page_cnv -> g_grid_columnconfigure(1, -weight => 1);
 	# статусная строка и кнопка закрытия
 	$frame_buttons = $mw -> new_ttk__frame();
@@ -232,10 +246,11 @@ $mw -> g_wm_resizable(1, 0);
 $frame_notebook -> m_select($config{page});
 # привязки сочетаний клавиш
 $mw -> g_bind('<Control-q>' => sub{$mw -> g_destroy()});
+$mw -> g_bind('<F1>' => \&helpwindow);
 $mw -> g_bind('<<NotebookTabChanged>>' => \&save_page_raised);
 Tkx::MainLoop();
 # запись конфигурации
-$cf -> save_file($conf_path_file_encoded, \%config);
+&config_write($conf_path_file_encoded, %config);
 
 ################
 # ПОДПРОГРАММЫ #
@@ -243,7 +258,7 @@ $cf -> save_file($conf_path_file_encoded, \%config);
 # Конвертор файлов локализации EU4
 # ПРОЦЕДУРА
 sub encodelocalisation_eu4 {
-	my $cpfl = shift; # cp1251 — CP1251; cp1252pcyr — CP1252+CYR; translit — транслит; d_cp1251 — декодировать cp1251
+	my $cpfl = shift; # cp1251 — CP1251; cp1252pcyr — CP1252+CYR; translit — транслит; d_cp1251 — декодировать CP1251; d_cp1252pcyr — декодировать CP1252+CYR
 	my $c2fl = $config{eu4_c2}; # 0 — перезаписать; 1 — сохранить в другое место
 	my $dir1 = $config{eu4_cat1}; # каталог №1
 	my $dir2 = $config{eu4_cat2}; # каталог №2
@@ -253,10 +268,9 @@ sub encodelocalisation_eu4 {
 	# работа
 	&win_busy();
 	opendir(my $ch, encode('locale_fs', $dir1));
-	my @files = grep { ! /^\.\.?\z/ } map {decode('locale_fs', $_)} readdir $ch;
+	my @files = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
 	closedir($ch);
 	for (my $i = 0; $i < scalar(@files); $i++) {
-#		unless (-T encode('locale_fs', "$dir1/$files[$i]")) {next}
 		open(my $file, '<:unix:perlio:utf8', encode('locale_fs', "$dir1/$files[$i]"));
 		my $fl = 0; # флаг нужности/ненужности обработки строк
 		my @strs; # объявление хранилища строк
@@ -274,21 +288,7 @@ sub encodelocalisation_eu4 {
 			}
 			if ($fl eq 0) {push(@strs, "$str\n"); next}
 			# деление строки
-			$str =~ s/^ //; # удаление начального пробела
-			$str =~ m/^[^:]+:[0-9]*/p; # нахождение тэга и номера
-			$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
-			my ($tag, $num) = split (/:/, ${^MATCH}); # приравнивание тэга и номера соответствующим переменным
-			$str =~ s/^ //; # удаление пробела между номером и текстом
-			$str =~ s/\\\"/\0/g; # замена экранированных кавычек на нулевые символы
-			$str =~ m/^"[^"]*"/p; # нахождение текста //в некоторых строках нет локализации
-			$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
-			my $txt = ${^MATCH}; # приравнивание текста соответствующей переменной
-			$txt =~ s/^"//; # удаление кавычки в начале текста
-			$txt =~ s/"$//; # удаление кавычки в конце текста
-			$txt =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в тексте
-			$str =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в исходной строке
-			my $cmm = $str; # приравнивание остатков строки комментарию
-			$cmm =~ s/ #//; # удаление обозначения комментария в начале комментария
+			my ($tag, $num, $txt, $cmm) = &yml_string($str);
 			# обработка строки
 			if    ($cpfl eq 'cp1251') {
 				$txt = &cyr_to_cp1251($txt);
@@ -301,6 +301,9 @@ sub encodelocalisation_eu4 {
 			}
 			elsif ($cpfl eq 'd_cp1251') {
 				$txt = &cp1251_to_cyr($txt);
+			}
+			elsif ($cpfl eq 'd_cp1252pcyr') {
+				$txt = &cp1252pcyr_to_cyr($txt, 'eu4');
 			}
 			# сохранение строки
 			if (length($cmm) > 0) {
@@ -337,10 +340,9 @@ sub encodelocalisation_ck2 {
 	&win_busy();
 	my %loc_ru;
 	opendir(my $corh, encode('locale_fs', $dir_orig_ru));
-	my @files_or = grep { ! /^\.\.?\z/ } map {decode('locale_fs', $_)} readdir $corh;
+	my @files_or = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $corh;
 	closedir($corh);
 	for (my $i = 0; $i < scalar(@files_or); $i++) {
-#		unless (-T encode('locale_fs', "$dir_orig_ru/$files_or[$i]")) {next}
 		open(my $fh, '<:raw', encode('locale_fs', "$dir_orig_ru/$files_or[$i]"));
 		while (my $str = <$fh>) {
 			$str = decode('cp1252', $str); # декодировка строки из CP1252
@@ -362,14 +364,14 @@ sub encodelocalisation_ck2 {
 		close($fh);
 	}
 	opendir(my $coeh, encode('locale_fs', $dir_orig_en));
-	my @files_oe = grep { ! /^\.\.?\z/ } map {decode('locale_fs', $_)} readdir $coeh;
+	my @files_oe = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $coeh;
 	closedir($coeh);
 	for (my $i = 0; $i < scalar(@files_oe); $i++) {
-#		unless (-T encode('locale_fs', "$dir_orig_en/$files_oe[$i]")) {next}
 		open(my $fh, '<:raw', encode('locale_fs', "$dir_orig_en/$files_oe[$i]"));
 		my $ff; # флаг содержания файла
 		my @strs; # хранилище строк
 		push(@strs, "#CODE;RUSSIAN;x\n");
+#		push(@strs, "#CODE;ENGLISH;x\n");
 		while (my $str = <$fh>) {
 			$str = decode('cp1252', $str);
 			$str =~ s/\x{FFFD}//g;
@@ -429,11 +431,10 @@ sub ck2_tags {
 	unless (-d encode('locale_fs', $dir_save_ru)) {$status = 'Не найден каталог для сохранения локализации!'; return 1}
 	&win_busy();
 	opendir(my $corh, encode('locale_fs', $dir_orig_ru));
-	my @files_or = grep { ! /^\.\.?\z/ } map {decode('locale_fs', $_)} readdir $corh;
+	my @files_or = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $corh;
 	closedir($corh);
 	mkdir(encode('locale_fs', "$dir_save_ru/ru"));
 	for (my $i = 0; $i < scalar(@files_or); $i++) {
-#		unless (-T encode('locale_fs', "$dir_orig_ru/$files_or[$i]")) {next}
 		open(my $fh, '<:raw', encode('locale_fs', "$dir_orig_ru/$files_or[$i]"));
 		my $ff;
 		my @strs;
@@ -458,11 +459,10 @@ sub ck2_tags {
 		close($ffh);
 	}
 	opendir(my $coeh, encode('locale_fs', $dir_orig_en));
-	my @files_oe = grep { ! /^\.\.?\z/ } map {decode('locale_fs', $_)} readdir $coeh;
+	my @files_oe = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $coeh;
 	closedir($coeh);
 	mkdir(encode('locale_fs', "$dir_save_ru/en"));
 	for (my $i = 0; $i < scalar(@files_oe); $i++) {
-#		unless (-T encode('locale_fs', "$dir_orig_en/$files_oe[$i]")) {next}
 		open(my $fh, '<:raw', encode('locale_fs', "$dir_orig_en/$files_oe[$i]"));
 		my $ff;
 		my @strs;
@@ -500,10 +500,9 @@ sub font { # изменяет fnt-карты шрифтов
 	if ($c2fl == 1) {unless (-d encode('locale_fs', $dir2)) {$status = 'Каталог для сохранения не найден!'; return 1}}
 	&win_busy();
 	opendir(my $ch, encode('locale_fs', $dir1));
-	my @files = grep { ! /^\.\.?\z/ } map {decode('locale_fs', $_)} readdir $ch;
+	my @files = grep { m/\.fnt$/ } map {decode('locale_fs', $_)} readdir $ch;
 	closedir($ch);
 	for (my $i = 0; $i < scalar(@files); $i++) {
-		unless (-T encode('locale_fs', "$dir1/$files[$i]")) {next}
 		open(my $file_in, '<:unix:crlf', encode('locale_fs', "$dir1/$files[$i]"));
 		my @strs;
 		while (my $str = <$file_in>) {
@@ -571,20 +570,44 @@ sub font { # изменяет fnt-карты шрифтов
 	&win_unbusy();
 }
 
-# Конвертирование файлов локализации мода-сейва из CK2
+# Конвертирование файлов локализации мода-сейва из CK2 в EU4
 # ПРОЦЕДУРА
 sub mod_save_conv {
-	my $cpfl = shift;
-	my $ldir = $config{cnv_cat};
-	unless (-d encode('locale_fs', $ldir)) {$status = 'Каталог с исходными данными не найден!'; return 1}
+	my $cpfl = shift; # cp1251 — CP1251; cp1252pcyr — CP1252+CYR
+	my $c2fl = $config{cnv_c2}; # 0 — произвести изменения в исходном каталоге; 1 — сохранить в каталог №2
+	my $dir1 = $config{cnv_cat1}; # исходный каталог
+	my $dir2 = $config{cnv_cat2}; # каталог сохранения
+	unless (-d encode('locale_fs', $dir1)) {$status = 'Каталог с исходными данными не найден!'; return 1}
+	if ($c2fl == 1) {unless (-d encode('locale_fs', $dir2)) {$status = 'Каталог для сохранения не найден!'; return 1}};
 	&win_busy();
-	my @files = glob encode('locale_fs', "$ldir/*_l_english.yml");
-	@files = map {decode('locale_fs', $_)} @files;
+	opendir(my $ch, encode('locale_fs', $dir1));
+	my @files = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
+	closedir($ch);
 	for (my $i = 0; $i < scalar(@files); $i++) {
-		my $new_name = $files[$i];
-		$new_name =~ s/_l_english\.yml$/_l_russian\.yml/;
-		rename $files[$i], $new_name;
-		open(my $file, '<:unix:perlio:utf8', encode('locale_fs', $new_name));
+		# удаление файлов локализации других языков
+		if ($files[$i] =~ m/_l_french\.yml$/ or
+		    $files[$i] =~ m/_l_german\.yml$/ or
+		    $files[$i] =~ m/_l_spanish\.yml$/) {
+			if ($c2fl == 0) {
+				unlink encode('locale_fs', "$dir1/$files[$i]");
+			}
+			next;
+		}
+		# удаление лишних файлов
+#		if ($files[$i] =~ m/converted_custom_countries/ or
+#		    $files[$i] =~ m/converted_custom_ideas/ or
+#		    $files[$i] =~ m/converted_heresies/ or
+#		    $files[$i] =~ m/converted_misc/ or
+#		    $files[$i] =~ m/converted_religions/ or
+#		    $files[$i] =~ m/new_converted_texts/ or
+#		    $files[$i] =~ m/sunset_invasion_custom_countries/ or
+#		    $files[$i] =~ m/sunset_invasion_custom_ideas/) {
+#			if ($c2fl == 0) {
+#				unlink encode('locale_fs', "$dir1/$files[$i]");
+#			}
+#			next;
+#		}
+		open(my $file, '<:unix:perlio:utf8', encode('locale_fs', "$dir1/$files[$i]"));
 		my @strs;
 		push(@strs, "\x{FEFF}");
 		while (my $str = <$file>) {
@@ -594,32 +617,20 @@ sub mod_save_conv {
 			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
 			if ($str =~ m/^l_english/) {$str =~ s/l_english/l_russian/; push(@strs, "$str\n"); next}
 			# деление строки
-			$str =~ s/^ //; # удаление начального пробела
-			$str =~ m/^[^:]+:[0-9]*/p; # нахождение тэга и номера
-			$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
-			my ($tag, $num) = split (/:/, ${^MATCH}); # приравнивание тэга и номера соответствующим переменным
-			$str =~ s/^ +//; # удаление пробела между номером и текстом
-			$str =~ s/\\\"/\0/g; # замена экранированных кавычек на нулевые символы
-			$str =~ m/^"[^"]*"/p; # нахождение текста //в некоторых строках нет локализации
-			$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
-			my $txt = ${^MATCH}; # приравнивание текста соответствующей переменной
-			$txt =~ s/^"//; # удаление кавычки в начале текста
-			$txt =~ s/"$//; # удаление кавычки в конце текста
-			$txt =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в тексте
-			$str =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в исходной строке
+			my ($tag, $num, $txt, $cmm) = &yml_string($str);
 			# обработка строки
 			$txt =~ y/Ђѓ€ЉЊЋљњћџЎўЈҐЁЄЇІіґё№єјЅѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя/€ƒˆŠŒŽšœžŸ¡¢£¥¨ª¯²³´¸¹º¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ/;
 			if ($cpfl eq 'cp1251') {
-				if ($new_name =~ m/converted_cultures_l_russian\.yml/) {
+				if ($files[$i] =~ m/converted_cultures/) {
 					$txt =~ s/\x7f\x11$/àÿ/;
 				}
 				if ($tag =~ m/^..._ADJ$/) {
-					$txt .= 'ñê'; # experiment
+					$txt .= 'ñê';
 				}
 			}
 			elsif ($cpfl eq 'cp1252pcyr') {
 				$txt =~ y/^/€/;
-				if ($new_name =~ m/converted_cultures_l_russian\.yml/) {
+				if ($files[$i] =~ m/converted_cultures/) {
 					$txt =~ s/\x7f\x11$/a÷/;
 				}
 			}
@@ -627,11 +638,68 @@ sub mod_save_conv {
 			push(@strs, " $tag:$num \"$txt\"\n");
 		}
 		close($file);
-		open(my $out, '>:unix:perlio:utf8', encode('locale_fs', $new_name));
-		print $out @strs;
-		close $out;
+		my $new_name = $files[$i];
+		$new_name =~ s/_l_english\.yml$/_l_russian\.yml/;
+		if ($c2fl == 0) {
+			rename encode('locale_fs', "$dir1/$files[$i]"), encode('locale_fs', "$dir1/$new_name");
+		}
+		if ($c2fl == 0) {
+			open(my $out, '>:unix:perlio:utf8', encode('locale_fs', "$dir1/$new_name"));
+			print $out @strs;
+			close $out;
+		}
+		elsif ($c2fl == 1) {
+			open(my $out, '>:unix:perlio:utf8', encode('locale_fs', "$dir2/$new_name"));
+			print $out @strs;
+			close $out;
+		}
 	}
 	&win_unbusy();
+}
+
+# функция разбора правильной YAML-подобной строки файла локализации EU4
+sub yml_string {
+	my $str = shift;
+	$str =~ s/^\h//; # удаление начального пробела
+	$str =~ m/^[^:]+:[0-9]*/p; # нахождение тэга и номера
+	$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
+	my ($tag, $num) = split (/:/, ${^MATCH}); # приравнивание тэга и номера соответствующим переменным
+	$str =~ s/^\h+//; # удаление пробела между номером и текстом
+	$str =~ s/\\\"/\0/g; # замена экранированных кавычек на нулевые символы
+	$str =~ m/^"[^"]*"/p; # нахождение текста //в некоторых строках нет локализации
+	$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
+	my $txt = ${^MATCH}; # приравнивание текста соответствующей переменной
+	$txt =~ s/^"//; # удаление кавычки в начале текста
+	$txt =~ s/"$//; # удаление кавычки в конце текста
+	$txt =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в тексте
+	$str =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в исходной строке
+	my $cmm = $str; # приравнивание остатков строки комментарию
+	$cmm =~ s/ #//; # удаление обозначения комментария в начале комментария //в оригинальной локализации комментарий в строке всегда начинается последовательностью « #»
+	return $tag, $num, $txt, $cmm;
+}
+
+# функция чтения конфигурационного файла
+sub config_read {
+	my $file = shift;
+	my %ch;
+	open(my $cfh, '<:unix:perlio:utf8', $file);
+	while (my $cstr = <$cfh>) {
+		chomp $cstr;
+		if ($cstr =~ m/^$/) {next}
+		my @cstr = split m/:/, $cstr, 2;
+		$ch{$cstr[0]} = $cstr[1];
+	}
+	close $cfh;
+	return %ch;
+}
+
+# функция записи конфигурационного файла
+sub config_write {
+	my $file = shift;
+	my $cnhs = shift;
+	open(my $cfh, '>:unix:perlio:utf8', $file);
+	for my $key (sort keys %config) {print $cfh "$key:$config{$key}\n"}
+	close $cfh;
 }
 
 # функция помощи сортировки для функции модификации карт шрифтов
@@ -680,6 +748,22 @@ sub cyr_to_cp1252pcyr {
 	elsif ($reg eq 'ck2') {
 		$str =~ y/‚„‹‘’“”–—› «»^€ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/'"'''""\-\-' ""/d;
 		$str =~ y/АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя/A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷/;
+	}
+	return $str;
+}
+
+# функция для преобразования кириллицы из CP1252+CYR в UTF-8
+sub cp1252pcyr_to_cyr {
+=pod
+Данная функция не выполняет преобразование из CP1252+CYR, т. к. преобразование в CP1252+CYR необратимо; она лишь позволяет прочитать закодированный ранее текст.
+=cut
+	my $str = shift; # строка для преобразования
+	my $reg = shift; # eu4 — CP1252+CYR-EU4; ck2 — CP1252+CYR-CK2
+	if ($reg eq 'eu4') {
+		$str =~ y/€‚ƒ„…†‡ˆ‰‹‘’“”•–—˜™›× ¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾÷/БГДЖЗИЙЛПУФЦЧШЩЪЫЬЭЮЯбвгджзийклмнптуфцчшщъыьэюя/;
+	}
+	elsif ($reg eq 'ck2') {
+		$str =~ y/^‚ƒ„…†‡ˆ‰‹‘’“”•–—˜™›× ¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾÷/БГДЖЗИЙЛПУФЦЧШЩЪЫЬЭЮЯбвгджзийклмнптуфцчшщъыьэюя/;
 	}
 	return $str;
 }
@@ -757,6 +841,29 @@ sub id_to_cp1252pcyr {
 # Подпрограммы поддержки графического интерфейса
 #
 
+sub helpwindow {
+	my $d = $mw -> new_toplevel();
+	$d -> g_wm_title('Краткая справка');
+	$d -> g_wm_resizable(0, 0);
+	$d -> new_ttk__label(-justify => 'left', -text =>
+"Структура интерфейса программы:
+	вкладки определяют формат, с которым работаем
+	виджеты на вкладках — что с ними можно сделать
+Форматы:
+	EU4 — каталог /localisation/*.yml
+	CK2 — каталог /localisation/*.csv
+	Шрифт — каталог с файлами *.fnt
+	Мод сохранения — каталог /localisation/*.yml
+Кодировать — перевести в указанную кодировку из исходной для данного формата.
+Декодировать — перевести из указанной кодировки в исходную для данного формата.
+Исходные кодировки:
+	EU4 — UTF-8
+	CK2 — CP1252 (CP1251)"
+) -> g_pack();
+	$d -> new_ttk__button(-text => 'Ок', -command => sub{$d -> g_destroy}) -> g_pack(-expand => 1, -fill => 'x');
+	$d -> g_focus;
+}
+
 sub translittable {
 =pod
 Показывает таблицу транслитерации
@@ -826,11 +933,13 @@ sub menu_license {
 =pod
 Вывести текст лицензии
 =cut
-	my $d = $mw -> new_toplevel();
+	my $d; # окно
+	my $tl; # текст лицензии
+	my $vs; # vertical scrollbar
+	$d = $mw -> new_toplevel();
 	$d -> g_wm_title('Лицензия');
 	$d -> g_wm_resizable(0, 1);
-	#-wraplength => '400'
-	my $tl = $d -> new_text(-font => 'TkFixedFont');
+	$tl = $d -> new_text(-font => 'TkFixedFont');
 	$tl -> m_insert('0.0', '                    GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -874,16 +983,16 @@ know their rights.
 (1) assert copyright on the software, and (2) offer you this License
 giving you legal permission to copy, distribute and/or modify it.
 
-  For the developers’ and authors’ protection, the GPL clearly explains
-that there is no warranty for this free software.  For both users’ and
-authors’ sake, the GPL requires that modified versions be marked as
+  For the developers\' and authors\' protection, the GPL clearly explains
+that there is no warranty for this free software.  For both users\' and
+authors\' sake, the GPL requires that modified versions be marked as
 changed, so that their problems will not be attributed erroneously to
 authors of previous versions.
 
   Some devices are designed to deny users access to install or run
 modified versions of the software inside them, although the manufacturer
 can do so.  This is fundamentally incompatible with the aim of
-protecting users’ freedom to change the software.  The systematic
+protecting users\' freedom to change the software.  The systematic
 pattern of such abuse occurs in the area of products for individuals to
 use, which is precisely where it is most unacceptable.  Therefore, we
 have designed this version of the GPL to prohibit the practice for those
@@ -967,7 +1076,7 @@ produce the work, or an object code interpreter used to run it.
   The "Corresponding Source" for a work in object code form means all
 the source code needed to generate, install, and (for an executable
 work) run the object code and to modify the work, including scripts to
-control those activities.  However, it does not include the work’s
+control those activities.  However, it does not include the work\'s
 System Libraries, or general-purpose tools or generally available free
 programs which are used unmodified in performing those activities but
 which are not part of the work.  For example, Corresponding Source
@@ -1009,7 +1118,7 @@ your copyrighted material outside their relationship with you.
 the conditions stated below.  Sublicensing is not allowed; section 10
 makes it unnecessary.
 
-  3. Protecting Users’ Legal Rights From Anti-Circumvention Law.
+  3. Protecting Users\' Legal Rights From Anti-Circumvention Law.
 
   No covered work shall be deemed part of an effective technological
 measure under any applicable law fulfilling obligations under article
@@ -1021,13 +1130,13 @@ measures.
 circumvention of technological measures to the extent such circumvention
 is effected by exercising rights under this License with respect to
 the covered work, and you disclaim any intention to limit operation or
-modification of the work as a means of enforcing, against the work’s
-users, your or third parties’ legal rights to forbid circumvention of
+modification of the work as a means of enforcing, against the work\'s
+users, your or third parties\' legal rights to forbid circumvention of
 technological measures.
 
   4. Conveying Verbatim Copies.
 
-  You may convey verbatim copies of the Program’s source code as you
+  You may convey verbatim copies of the Program\'s source code as you
 receive it, in any medium, provided that you conspicuously and
 appropriately publish on each copy an appropriate copyright notice;
 keep intact all notices stating that this License and any
@@ -1070,7 +1179,7 @@ works, which are not by their nature extensions of the covered work,
 and which are not combined with it such as to form a larger program,
 in or on a volume of a storage or distribution medium, is called an
 "aggregate" if the compilation and its resulting copyright are not
-used to limit the access or legal rights of the compilation’s users
+used to limit the access or legal rights of the compilation\'s users
 beyond what the individual works permit.  Inclusion of a covered work
 in an aggregate does not cause this License to apply to the other
 parts of the aggregate.
@@ -1288,7 +1397,7 @@ organization, or substantially all assets of one, or subdividing an
 organization, or merging organizations.  If propagation of a covered
 work results from an entity transaction, each party to that
 transaction who receives a copy of the work also receives whatever
-licenses to the work the party’s predecessor in interest had or could
+licenses to the work the party\'s predecessor in interest had or could
 give under the previous paragraph, plus a right to possession of the
 Corresponding Source of the work from the predecessor in interest, if
 the predecessor has it or can get it with reasonable efforts.
@@ -1305,9 +1414,9 @@ sale, or importing the Program or any portion of it.
 
   A "contributor" is a copyright holder who authorizes use under this
 License of the Program or a work on which the Program is based.  The
-work thus licensed is called the contributor’s "contributor version".
+work thus licensed is called the contributor\'s "contributor version".
 
-  A contributor’s "essential patent claims" are all patent claims
+  A contributor\'s "essential patent claims" are all patent claims
 owned or controlled by the contributor, whether already acquired or
 hereafter acquired, that would be infringed by some manner, permitted
 by this License, of making, using, or selling its contributor version,
@@ -1318,7 +1427,7 @@ patent sublicenses in a manner consistent with the requirements of
 this License.
 
   Each contributor grants you a non-exclusive, worldwide, royalty-free
-patent license under the contributor’s essential patent claims, to
+patent license under the contributor\'s essential patent claims, to
 make, use, sell, offer for sale, import and otherwise run, modify and
 propagate the contents of its contributor version.
 
@@ -1339,7 +1448,7 @@ patent license for this particular work, or (3) arrange, in a manner
 consistent with the requirements of this License, to extend the patent
 license to downstream recipients.  "Knowingly relying" means you have
 actual knowledge that, but for the patent license, your conveying the
-covered work in a country, or your recipient’s use of the covered work
+covered work in a country, or your recipient\'s use of the covered work
 in a country, would infringe one or more identifiable patents in that
 country that you have reason to believe are valid.
 
@@ -1370,7 +1479,7 @@ or that patent license was granted, prior to 28 March 2007.
 any implied license or other defenses to infringement that may
 otherwise be available to you under applicable patent law.
 
-  12. No Surrender of Others’ Freedom.
+  12. No Surrender of Others\' Freedom.
 
   If conditions are imposed on you (whether by court order, agreement or
 otherwise) that contradict the conditions of this License, they do not
@@ -1410,7 +1519,7 @@ GNU General Public License, you may choose any version ever published
 by the Free Software Foundation.
 
   If the Program specifies that a proxy can decide which future
-versions of the GNU General Public License can be used, that proxy’s
+versions of the GNU General Public License can be used, that proxy\'s
 public statement of acceptance of a version permanently authorizes you
 to choose that version for the Program.
 
@@ -1464,7 +1573,7 @@ to attach them to the start of each source file to most effectively
 state the exclusion of warranty; and each file should have at least
 the "copyright" line and a pointer to where the full notice is found.
 
-    {one line to give the program’s name and a brief idea of what it does.}
+    {one line to give the program\'s name and a brief idea of what it does.}
     Copyright (C) {year}  {name of author}
 
     This program is free software: you can redistribute it and/or modify
@@ -1486,12 +1595,12 @@ Also add information on how to contact you by electronic and paper mail.
 notice like this when it starts in an interactive mode:
 
     {project}  Copyright (C) {year}  {fullname}
-    This program comes with ABSOLUTELY NO WARRANTY; for details type ‛show w’.
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w\'.
     This is free software, and you are welcome to redistribute it
-    under certain conditions; type ‛show c’ for details.
+    under certain conditions; type `show c\' for details.
 
-The hypothetical commands ‛show w’ and ‛show c’ should show the appropriate
-parts of the General Public License.  Of course, your program’s commands
+The hypothetical commands `show w\' and `show c\' should show the appropriate
+parts of the General Public License.  Of course, your program\'s commands
 might be different; for a GUI interface, you would use an "about box".
 
   You should also get your employer (if you work as a programmer) or school,
@@ -1506,8 +1615,8 @@ the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <http://www.gnu.org/philosophy/why-not-lgpl.html>.');
 	$tl -> g_grid(-column => 0, -row => 0, -sticky => 'nsew');
-	my $vs = $d -> new_ttk__scrollbar(-orient => 'vertical', -command => "$tl yview");
-	$vs  -> g_grid(-column => 1, -row => 0, -sticky => 'ns');
+	$vs = $d -> new_ttk__scrollbar(-orient => 'vertical', -command => "$tl yview");
+	$vs -> g_grid(-column => 1, -row => 0, -sticky => 'ns');
 	$tl -> m_configure(-yscrollcommand => "$vs set");
 	$tl -> m_configure(-state => 'disabled');
 	$d -> new_ttk__button(-text => 'Ок', -command => sub{$d -> g_destroy}) -> g_grid(-column => 0, -columnspan => 2, -row => 1, -sticky => 'ew');
@@ -1522,7 +1631,7 @@ sub menu_about {
 	my $d = $mw -> new_toplevel();
 	$d -> g_wm_title('О программе');
 	$d -> g_wm_resizable(0, 0);
-	$d -> new_ttk__label(-justify => 'left', -wraplength => '400', -text => "Recodenc\nВерсия: $version\nCopyright © 2015-2016 terqüéz <gz0\@ro.ru>") -> g_pack(-side => 'left');
+	$d -> new_ttk__label(-justify => 'left', -wraplength => '400', -text => "Recodenc\nВерсия: $version\nCopyright © 2015-2016 terqüéz <gz0\@ro.ru>\nРесурсы для разработчиков и справка:\nhttps://github.com/chomobi/recodenc") -> g_pack(-side => 'left');
 	$d -> new_ttk__button(-text => 'Ок', -command => sub{$d -> g_destroy()}) -> g_pack(-side => 'left');
 	$d -> g_focus;
 }
