@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 ################################################################################
 # Recodenc
-# Copyright © 2015-2016 terqüéz <gz0@ro.ru>
+# Copyright © 2016 terqüéz <gz0@ro.ru>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,6 +15,24 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+################################################################################
+# Опции конфигурационного файла:
+#	page — идентификатор поднятой страницы 0..4
+#	eu4_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#	eu4_cat1 — каталог №1
+#	eu4_cat2 — каталог №2
+#	ck2_origru — каталог с русской локализацией CK2 (Full)
+#	ck2_origen — каталог с английской локализацией CK2
+#	ck2_saveru — каталог для сохранения скомпилированной Lite-локализации
+#	fnt_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#	fnt_cat1 — каталог шрифтов №1
+#	fnt_cat2 — каталог шрифтов №2
+#	cnv_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#	cnv_cat1 — каталог №1 для обработки конвертором мода сохранений
+#	cnv_cat2 — каталог №2
+#	ptx_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
+#	ptx_cat1 — каталог №1
+#	ptx_cat2 — каталог №2
 ################################################################################
 # закрытие окна терминала в windows
 BEGIN {
@@ -34,22 +52,8 @@ binmode(STDIN, ":encoding(console_in)");
 binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
 
-my $version = '0.4.1';
+my $version = '0.4.2';
 my $status = ''; # переменная для вывода статуса
-# Опции конфигурационного файла:
-#	page — идентификатор поднятой страницы 0..3
-#	eu4_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
-#	eu4_cat1 — каталог №1
-#	eu4_cat2 — каталог №2
-#	ck2_origru — каталог с русской локализацией CK2 (Full)
-#	ck2_origen — каталог с английской локализацией CK2
-#	ck2_saveru — каталог для сохранения скомпилированной Lite-локализации
-#	fnt_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
-#	fnt_cat1 — каталог шрифтов №1
-#	fnt_cat2 — каталог шрифтов №2
-#	cnv_c2 — 0 = не сохранять в др. каталог; 1 = сохранять
-#	cnv_cat1 — каталог №1 для обработки конвертором мода сохранений
-#	cnv_cat2 — каталог №2
 ## загрузка конфигурации
 my $conf_path_dir; # имя каталога файла конфигурации
 my $conf_path_dir_encoded; # имя каталога файла конфигурации в кодировке локальной машины
@@ -72,8 +76,19 @@ unless (-d $conf_path_dir_encoded) {
 }
 $conf_path_file = "$conf_path_dir/recodenc.conf";
 $conf_path_file_encoded = encode('locale_fs', $conf_path_file);
-my %config = &config_read($conf_path_file_encoded);
+#my %config = &config_read($conf_path_file_encoded);
+my %config;
+if (-e $conf_path_file_encoded) {
+	%config = &config_read($conf_path_file_encoded);
+}
 # проверка загруженной конфигурации
+## создание отсутствующих ключей
+for my $key ('page', 'eu4_c2', 'eu4_cat1', 'eu4_cat2', 'ck2_origru', 'ck2_origen', 'ck2_saveru', 'fnt_c2', 'fnt_cat1', 'fnt_cat2', 'cnv_c2', 'cnv_cat1', 'cnv_cat2', 'ptx_c2', 'ptx_cat1', 'ptx_cat2') {
+	unless (exists($config{$key})) {
+		$config{$key} = '';
+	}
+}
+## фильтр неправильных ключей
 for my $key (sort keys %config) {
 	unless ($key eq 'page' or
 	        $key eq 'eu4_c2' or
@@ -87,19 +102,29 @@ for my $key (sort keys %config) {
 	        $key eq 'fnt_cat2' or
 	        $key eq 'cnv_c2' or
 	        $key eq 'cnv_cat1' or
-	        $key eq 'cnv_cat2') {
+	        $key eq 'cnv_cat2' or
+	        $key eq 'ptx_c2' or
+	        $key eq 'ptx_cat1' or
+	        $key eq 'ptx_cat2') {
 		delete($config{$key});
 	}
 	unless (defined($config{$key})) {$config{$key} = ''} # инициализация пустыми значениями
 }
-if (! defined($config{page})) {$config{page} = 0}
-elsif ($config{page} < 0 and $config{page} > 3) {$config{page} = 0}
-if (! defined($config{eu4_c2})) {$config{eu4_c2} = 0}
+### page
+if (! defined($config{page}) or $config{page} eq '') {$config{page} = 0}
+elsif ($config{page} < 0 and $config{page} > 4) {$config{page} = 0}
+### eu4_c2
+if (! defined($config{eu4_c2}) or $config{eu4_c2} eq '') {$config{eu4_c2} = 0}
 elsif ($config{eu4_c2} != 0 and $config{eu4_c2} != 1) {$config{eu4_c2} = 0}
-if (! defined($config{fnt_c2})) {$config{fnt_c2} = 0}
+### fnt_c2
+if (! defined($config{fnt_c2}) or $config{fnt_c2} eq '') {$config{fnt_c2} = 0}
 elsif ($config{fnt_c2} != 0 and $config{fnt_c2} != 1) {$config{fnt_c2} = 0}
-if (! defined($config{cnv_c2})) {$config{cnv_c2} = 0}
+### cnv_c2
+if (! defined($config{cnv_c2}) or $config{cnv_c2} eq '') {$config{cnv_c2} = 0}
 elsif ($config{cnv_c2} != 0 and $config{cnv_c2} != 1) {$config{cnv_c2} = 0}
+### ptx_c2
+if (! defined($config{ptx_c2}) or $config{ptx_c2} eq '') {$config{cnv_c2} = 0}
+elsif ($config{ptx_c2} != 0 and $config{ptx_c2} != 1) {$config{ptx_c2} = 0}
 ## рисование интерфейса
 # инициализация переменных для хранения указателей на элементы интерфейса
 my $mw; # главное окно
@@ -111,11 +136,13 @@ my $page_eu4; # вкладка EU4
 my $page_ck2; # вкладка CK2
 my $page_fnt; # вкладка шрифт
 my $page_cnv; # вкладка сохранений
+my $page_ptx; # простой текст
 my $frame_eu4_buttons; # фрейм с кнопками действий для перекодировки
 my $frame_eu4_buttons2;
 my $frame_ck2_buttons; # фрейм с кнопками
 my $frame_fnt_buttons; # фрейм кнопки действия
 my $frame_cnv_buttons; # фрейм кнопок
+my $frame_ptx_buttons;
 my $frame_buttons; # фрейм с кнопкой «закрыть»
 
 # создание корневого окна
@@ -234,6 +261,23 @@ $mw -> g_wm_title("Recodenc v$version");
 		# предупреждение
 		$page_cnv -> new_ttk__label(-text => 'Представленные здесь инструменты, скорее всего, не работаю, т. к. мне не на чем их отлаживать. Ждём релиза полных переводов CK2 и EU4.', -foreground => 'red', -justify => 'left', -wraplength => 600) -> g_grid(-column => 0, -columnspan => 3, -row => 3, -sticky => 'ew');
 	$page_cnv -> g_grid_columnconfigure(1, -weight => 1);
+	# вкладка PTX
+	$page_ptx = $mw -> new_ttk__frame();
+	$frame_notebook -> m_add($page_ptx, -text => 'Простой текст', -sticky => 'nsew');
+		# каталог №1
+		$page_ptx -> new_ttk__label(-text => 'Для обработки:') -> g_grid(-column => 0, -row => 0, -sticky => 'w');
+		$page_ptx -> new_ttk__entry(-width => 50, -textvariable => \$config{ptx_cat1}) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$page_ptx -> new_ttk__button(-text => 'Выбрать каталог', -command => [\&seldir, \$config{ptx_cat1}]) -> g_grid(-column => 2, -row => 0, -sticky => 'e');
+		# каталог №2
+		$page_ptx -> new_ttk__checkbutton(-text => 'Сохранить в:', -variable => \$config{ptx_c2}) -> g_grid(-column => 0, -row => 1, -sticky => 'e');
+		$page_ptx -> new_ttk__entry(-width => 50, -textvariable => \$config{ptx_cat2}) -> g_grid(-column => 1, -row => 1, -sticky => 'ew');
+		$page_ptx -> new_ttk__button(-text => 'Выбрать каталог', -command => [\&seldir, \$config{ptx_cat2}]) -> g_grid(-column => 2, -row => 1, -sticky => 'e');
+		# кнопки
+		$frame_ptx_buttons = $page_ptx -> new_ttk__frame();
+		$frame_ptx_buttons -> g_grid(-column => 0, -columnspan => 3, -row => 2, -sticky => 'ew');
+		$frame_ptx_buttons -> new_ttk__button(-text => 'Конвертировать (UTF8 → CP1252+CYR)', -command => \&plaintext) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+		$frame_ptx_buttons -> g_grid_columnconfigure(0, -weight => 1);
+	$page_ptx -> g_grid_columnconfigure(1, -weight => 1);
 	# статусная строка и кнопка закрытия
 	$frame_buttons = $mw -> new_ttk__frame();
 	$frame_buttons -> g_grid(-column => 0, -row => 1, -sticky => 'sew');
@@ -657,6 +701,47 @@ sub mod_save_conv {
 	&win_unbusy();
 }
 
+# Конвертирование файлов простого текста из UTF8 в CP1252+CYR
+# ПРОЦЕДУРА
+sub plaintext {
+	my $c2fl = $config{ptx_c2}; # 0 — произвести изменения в исходном каталоге; 1 — сохранить в каталог №2
+	my $dir1 = $config{ptx_cat1}; # исходный каталог
+	my $dir2 = $config{ptx_cat2}; # каталог сохранения
+	# проверка параметров
+	unless (-d encode('locale_fs', $dir1)) {$status = 'Каталог с исходными данными не найден!'; return 1};
+	if ($c2fl == 1) {unless (-d encode('locale_fs', $dir2)) {$status = 'Каталог для сохранения не найден!'; return 1}};
+	# работа
+	&win_busy();
+	opendir(my $ch, encode('locale_fs', $dir1));
+	my @files = grep { !m/^\.\.?$/ } map {decode('locale_fs', $_)} readdir $ch;
+	$, = "\n";
+	print @files;
+	closedir($ch);
+	for (my $i = 0; $i < scalar(@files); $i++) {
+		open(my $file, '<:utf8', encode('locale_fs', "$dir1/$files[$i]"));
+		my @strs;
+		while (my $str = <$file>) {
+			chomp($str);
+			if ($str =~ m/\r$/) {$str =~ s/\r$//} # защита от дебилов, подающих на вход CRLF
+			if ($str =~ m/^\x{FEFF}/) {$str =~ s/^\x{FEFF}//} # удаление BOM из обрабатываемых строк
+			$str = &cyr_to_cp1252pcyr($str, 'eu4');
+			$str = encode('cp1252', $str);
+			push(@strs, "$str\n");
+		}
+		if ($c2fl == 0) {
+			open(my $file_out, '>', encode('locale_fs', "$dir1/$files[$i]"));
+			print $file_out @strs;
+			close($file_out);
+		}
+		elsif ($c2fl == 1) {
+			open(my $file_out, '>', encode('locale_fs', "$dir2/$files[$i]"));
+			print $file_out @strs;
+			close($file_out);
+		}
+	}
+	&win_unbusy();
+}
+
 # функция разбора правильной YAML-подобной строки файла локализации EU4
 sub yml_string {
 	my $str = shift;
@@ -854,6 +939,7 @@ sub helpwindow {
 	CK2 — каталог /localisation/*.csv
 	Шрифт — каталог с файлами *.fnt
 	Мод сохранения — каталог /localisation/*.yml
+	Простой текст — каталог с текстовыми файлами. Расширение не проверяется — берутся все подряд.
 Кодировать — перевести в указанную кодировку из исходной для данного формата.
 Декодировать — перевести из указанной кодировки в исходную для данного формата.
 Исходные кодировки:
@@ -1614,8 +1700,8 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <http://www.gnu.org/philosophy/why-not-lgpl.html>.');
-	$tl -> g_grid(-column => 0, -row => 0, -sticky => 'nsew');
 	$vs = $d -> new_ttk__scrollbar(-orient => 'vertical', -command => "$tl yview");
+	$tl -> g_grid(-column => 0, -row => 0, -sticky => 'nsew');
 	$vs -> g_grid(-column => 1, -row => 0, -sticky => 'ns');
 	$tl -> m_configure(-yscrollcommand => "$vs set");
 	$tl -> m_configure(-state => 'disabled');
@@ -1628,10 +1714,32 @@ sub menu_about {
 =pod
 Вывести сообщение о программе
 =cut
-	my $d = $mw -> new_toplevel();
+	my $d; # окно
+	my $t; # текст
+	$d = $mw -> new_toplevel();
 	$d -> g_wm_title('О программе');
 	$d -> g_wm_resizable(0, 0);
-	$d -> new_ttk__label(-justify => 'left', -wraplength => '400', -text => "Recodenc\nВерсия: $version\nCopyright © 2015-2016 terqüéz <gz0\@ro.ru>\nРесурсы для разработчиков и справка:\nhttps://github.com/chomobi/recodenc") -> g_pack(-side => 'left');
-	$d -> new_ttk__button(-text => 'Ок', -command => sub{$d -> g_destroy()}) -> g_pack(-side => 'left');
+	$t = $d -> new_text(-font => 'TkFixedFont', -height => 18, -width => 69);
+	$t -> m_insert('0.0', "Recodenc
+Версия: $version
+Copyright © 2016 terqüéz <gz0\@ro.ru>
+Ресурсы для разработчиков и справка:
+https://github.com/chomobi/recodenc
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.");
+	$t -> m_configure(-state => 'disabled');
+	$t -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+	$d -> new_ttk__button(-text => 'Ок', -command => sub{$d -> g_destroy()}) -> g_grid(-column => 0, -row => 1, -sticky => 'ew');
 	$d -> g_focus;
 }
