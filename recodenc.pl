@@ -714,8 +714,6 @@ sub plaintext {
 	&win_busy();
 	opendir(my $ch, encode('locale_fs', $dir1));
 	my @files = grep { !m/^\.\.?$/ } map {decode('locale_fs', $_)} readdir $ch;
-	$, = "\n";
-	print @files;
 	closedir($ch);
 	for (my $i = 0; $i < scalar(@files); $i++) {
 		open(my $file, '<:utf8', encode('locale_fs', "$dir1/$files[$i]"));
