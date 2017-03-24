@@ -264,8 +264,12 @@ if (-e $conf_path_file_encoded) {
 	$c1 = scalar(keys(%config));
 	$c2 = scalar(keys(%config2));
 	if ($c1 != $c2) {&w_config_write()}
-	for my $key (sort keys %config) {
-		unless ($config{$key} eq $config2{$key}) {&w_config_write()}
+	else {
+		my $fl_cfgwrt;
+		for my $key (sort keys %config) {
+			unless ($config{$key} eq $config2{$key}) {$fl_cfgwrt = 1}
+		}
+		if (defined($fl_cfgwrt)) {&w_config_write()}
 	}
 }
 else {&w_config_write()}
