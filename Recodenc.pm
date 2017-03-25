@@ -618,13 +618,14 @@ sub ck2_to_eu4_modsave {
 		}
 		# удаление лишних файлов
 #		if ($filename =~ m/converted_custom_countries/ or
+#		    $filename =~ m/converted_custom_deities/ or
 #		    $filename =~ m/converted_custom_ideas/ or
 #		    $filename =~ m/converted_heresies/ or
 #		    $filename =~ m/converted_misc/ or
 #		    $filename =~ m/converted_religions/ or
-#		    $filename =~ m/new_converted_texts/ or
 #		    $filename =~ m/sunset_invasion_custom_countries/ or
-#		    $filename =~ m/sunset_invasion_custom_ideas/) {
+#		    $filename =~ m/sunset_invasion_custom_ideas/ or
+#		    $filename =~ m/sunset_invasion_custom_technology_groups/) {
 #			if ($c2fl == 0) {
 #				unlink encode('locale_fs', "$dir1/$filename");
 #			}
