@@ -283,6 +283,7 @@ sub w_recodenc_eu4_l10n {
 	my $fl = Recodenc::eu4_l10n(shift, $config{eu4_c2}, $config{eu4_cat1}, $config{eu4_cat2});
 	if ($fl == $Recodenc::FL_EU4_SRC_DIR_NOT_FOUND) {&win_unbusy('Каталог с исходными данными не найден!'); return $Recodenc::FL_EU4_SRC_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_EU4_DST_DIR_NOT_FOUND) {&win_unbusy('Каталог для сохранения не найден!'); return $Recodenc::FL_EU4_DST_DIR_NOT_FOUND}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {&win_unbusy('Каталог с исходными данными и каталог назначения совпадают!'); return $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME}
 	else {&win_unbusy()}
 	return 0;
 }
@@ -293,6 +294,7 @@ sub w_recodenc_ck2_l10n {
 	if ($fl == $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с английской локализацией!'); return $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с русской локализацией!'); return $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог для сохранения локализации!'); return $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {&win_unbusy('Каталог с исходными данными и каталог назначения совпадают!'); return $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME}
 	else {&win_unbusy()}
 	return 0;
 }
@@ -303,6 +305,7 @@ sub w_recodenc_ck2_l10n_tags {
 	if ($fl == $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с английской локализацией!'); return $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с русской локализацией!'); return $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог для сохранения локализации!'); return $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {&win_unbusy('Каталог с исходными данными и каталог назначения совпадают!'); return $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME}
 	else {&win_unbusy()}
 	return 0;
 }
@@ -313,6 +316,7 @@ sub w_recodenc_eu4ck2_font {
 	my $fl = Recodenc::eu4ck2_font(shift, $config{'fnt_c2'}, $config{'fnt_cat1'}, $config{'fnt_cat2'});
 	if ($fl == $Recodenc::FL_FNT_SRC_DIR_NOT_FOUND) {&win_unbusy('Каталог с исходными данными не найден!'); return $Recodenc::FL_FNT_SRC_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_FNT_DST_DIR_NOT_FOUND) {&win_unbusy('Каталог для сохранения не найден!'); return $Recodenc::FL_FNT_DST_DIR_NOT_FOUND}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {&win_unbusy('Каталог с исходными данными и каталог назначения совпадают!'); return $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME}
 	else {&win_unbusy()}
 	return 0;
 }
@@ -323,6 +327,7 @@ sub w_recodenc_ck2_to_eu4_modsave {
 	my $fl = Recodenc::ck2_to_eu4_modsave(shift, $config{cnv_c2}, $config{cnv_cat1}, $config{cnv_cat2});
 	if ($fl == $Recodenc::FL_CNV_SRC_DIR_NOT_FOUND) {&win_unbusy('Каталог с исходными данными не найден!'); return $Recodenc::FL_CNV_SRC_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CNV_DST_DIR_NOT_FOUND) {&win_unbusy('Каталог для сохранения не найден!'); return $Recodenc::FL_CNV_DST_DIR_NOT_FOUND}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {&win_unbusy('Каталог с исходными данными и каталог назначения совпадают!'); return $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME}
 	else {&win_unbusy()}
 	return 0;
 }
@@ -333,6 +338,7 @@ sub w_recodenc_plaintext {
 	my $fl = Recodenc::plaintext($config{ptx_c2}, $config{ptx_cat1}, $config{ptx_cat2});
 	if ($fl == $Recodenc::FL_PTX_SRC_DIR_NOT_FOUND) {&win_unbusy('Каталог с исходными данными не найден!'); return $Recodenc::FL_PTX_SRC_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_PTX_DST_DIR_NOT_FOUND) {&win_unbusy('Каталог для сохранения не найден!'); return $Recodenc::FL_PTX_DST_DIR_NOT_FOUND}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {&win_unbusy('Каталог с исходными данными и каталог назначения совпадают!'); return $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME}
 	else {&win_unbusy()}
 	return 0;
 }

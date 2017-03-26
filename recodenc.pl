@@ -98,6 +98,7 @@ if    ($mode eq 'e' or $mode eq 'eu4') {
 	# обработка ошибок
 	if    ($fl == $Recodenc::FL_EU4_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
 	elsif ($fl == $Recodenc::FL_EU4_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
 }
 elsif ($mode eq 'c' or $mode eq 'ck2') {
 	# объявление локальных переменных
@@ -118,6 +119,7 @@ elsif ($mode eq 'c' or $mode eq 'ck2') {
 	if    ($fl == $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND) {die 'Не найден каталог с английской локализацией!'}
 	elsif ($fl == $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND) {die 'Не найден каталог с русской локализацией!'}
 	elsif ($fl == $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND) {die 'Не найден каталог для сохранения локализации!'}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
 }
 elsif ($mode eq 'f' or $mode eq 'fnt') {
 	# объявление локальных переменных
@@ -143,6 +145,7 @@ elsif ($mode eq 'f' or $mode eq 'fnt') {
 	# обработка ошибок
 	if    ($fl == $Recodenc::FL_FNT_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
 	elsif ($fl == $Recodenc::FL_FNT_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
 }
 elsif ($mode eq 'm' or $mode eq 'cnv') {
 	# объявление локальных переменных
@@ -164,6 +167,7 @@ elsif ($mode eq 'm' or $mode eq 'cnv') {
 	# обработка ошибок
 	if    ($fl == $Recodenc::FL_CNV_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
 	elsif ($fl == $Recodenc::FL_CNV_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
 }
 elsif ($mode eq 't' or $mode eq 'ptx') {
 	# объявление локальных переменных
@@ -181,6 +185,7 @@ elsif ($mode eq 't' or $mode eq 'ptx') {
 	# обработка ошибок
 	if    ($fl == $Recodenc::FL_PTX_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
 	elsif ($fl == $Recodenc::FL_PTX_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
+	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
 }
 exit(0);
 ################################################################################

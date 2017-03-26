@@ -37,9 +37,11 @@ use vars qw(
 	$FL_CNV_DST_DIR_NOT_FOUND
 	$FL_PTX_SRC_DIR_NOT_FOUND
 	$FL_PTX_DST_DIR_NOT_FOUND
+	$FL_SRC_AND_DST_DIR_ARE_THE_SAME
 	);
 use parent qw(Exporter);
 use File::Copy;
+use Cwd qw(abs_path);
 use Encode qw(encode decode);
 use Encode::Locale;
 @EXPORT_OK = qw(eu4_l10n ck2_l10n ck2_l10n_tags eu4ck2_font ck2_to_eu4_modsave plaintext);
@@ -55,6 +57,7 @@ use Encode::Locale;
 *FL_CNV_DST_DIR_NOT_FOUND = \2;
 *FL_PTX_SRC_DIR_NOT_FOUND = \1;
 *FL_PTX_DST_DIR_NOT_FOUND = \2;
+*FL_SRC_AND_DST_DIR_ARE_THE_SAME = \4;
 
 ################################################################################
 # КОД ДЛЯ ВЫПОЛНЕНИЯ ПЕРЕД ВЫЗОВАМИ ФУНКЦИЙ
@@ -267,7 +270,12 @@ sub eu4_l10n {
 	my $dir2 = shift; # каталог №2
 	# проверка параметров
 	unless (-d encode('locale_fs', $dir1)) {return $FL_EU4_SRC_DIR_NOT_FOUND};
-	if ($c2fl == 1) {unless (-d encode('locale_fs', $dir2)) {return $FL_EU4_DST_DIR_NOT_FOUND}};
+	if ($c2fl == 1) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_EU4_DST_DIR_NOT_FOUND}
+		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
+			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+		}
+	};
 	# работа
 	opendir(my $ch, encode('locale_fs', $dir1));
 	my @filenames = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
@@ -340,6 +348,11 @@ sub ck2_l10n {
 	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_CK2_SRCEN_DIR_NOT_FOUND}
 	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_CK2_SRCRU_DIR_NOT_FOUND}
 	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_CK2_DSTRU_DIR_NOT_FOUND}
+	if (decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) or
+	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru))) or
+	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru)))) {
+		return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+	}
 	# работа
 	my %loc_ru;
 	opendir(my $corh, encode('locale_fs', $dir_orig_ru));
@@ -436,6 +449,11 @@ sub ck2_l10n_tags {
 	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_CK2_SRCEN_DIR_NOT_FOUND}
 	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_CK2_SRCRU_DIR_NOT_FOUND}
 	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_CK2_DSTRU_DIR_NOT_FOUND}
+	if (decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) or
+	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru))) or
+	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru)))) {
+		return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+	}
 	# работа
 	opendir(my $corh, encode('locale_fs', $dir_orig_ru));
 	my @filenames_or = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $corh;
@@ -506,7 +524,12 @@ sub eu4ck2_font {
 	my $dir2 = shift; # каталог №2
 	# проверка параметров
 	unless (-d encode('locale_fs', $dir1)) {return $FL_FNT_SRC_DIR_NOT_FOUND}
-	if ($c2fl == 1) {unless (-d encode('locale_fs', $dir2)) {return $FL_FNT_DST_DIR_NOT_FOUND}}
+	if ($c2fl == 1) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_FNT_DST_DIR_NOT_FOUND}
+		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
+			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+		}
+	}
 	# работа
 	opendir(my $ch, encode('locale_fs', $dir1));
 	my @filenames = grep { m/(\.fnt|\.tga|\.dds)$/ } map {decode('locale_fs', $_)} readdir $ch;
@@ -601,7 +624,12 @@ sub ck2_to_eu4_modsave {
 	my $dir2 = shift; # каталог сохранения
 	# проверка параметров
 	unless (-d encode('locale_fs', $dir1)) {return $FL_CNV_SRC_DIR_NOT_FOUND}
-	if ($c2fl == 1) {unless (-d encode('locale_fs', $dir2)) {return $FL_CNV_DST_DIR_NOT_FOUND}};
+	if ($c2fl == 1) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_CNV_DST_DIR_NOT_FOUND}
+		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
+			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+		}
+	};
 	# работа
 	opendir(my $ch, encode('locale_fs', $dir1));
 	my @filenames = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
@@ -689,7 +717,12 @@ sub plaintext {
 	my $dir2 = shift; # каталог сохранения
 	# проверка параметров
 	unless (-d encode('locale_fs', $dir1)) {return $FL_PTX_SRC_DIR_NOT_FOUND};
-	if ($c2fl == 1) {unless (-d encode('locale_fs', $dir2)) {return $FL_PTX_DST_DIR_NOT_FOUND}};
+	if ($c2fl == 1) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_PTX_DST_DIR_NOT_FOUND}
+		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
+			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+		}
+	};
 	# работа
 	opendir(my $ch, encode('locale_fs', $dir1));
 	my @filenames = grep { !m/^\.\.?$/ } map {decode('locale_fs', $_)} readdir $ch;
