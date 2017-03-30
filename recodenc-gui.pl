@@ -56,7 +56,7 @@ binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
 
 *PROGNAME = \'Recodenc';
-*VERSION = \'0.5.0';
+*VERSION = \'0.5.1';
 
 my $status = ''; # переменная для вывода статуса
 ## загрузка конфигурации
