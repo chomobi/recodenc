@@ -645,20 +645,20 @@ sub ck2_to_eu4_modsave {
 			next;
 		}
 		# удаление лишних файлов
-#		if ($filename =~ m/converted_custom_countries/ or
-#		    $filename =~ m/converted_custom_deities/ or
-#		    $filename =~ m/converted_custom_ideas/ or
-#		    $filename =~ m/converted_heresies/ or
-#		    $filename =~ m/converted_misc/ or
-#		    $filename =~ m/converted_religions/ or
-#		    $filename =~ m/sunset_invasion_custom_countries/ or
-#		    $filename =~ m/sunset_invasion_custom_ideas/ or
-#		    $filename =~ m/sunset_invasion_custom_technology_groups/) {
-#			if ($c2fl == 0) {
-#				unlink encode('locale_fs', "$dir1/$filename");
-#			}
-#			next;
-#		}
+		if ($filename =~ m/converted_custom_countries/ or
+		    $filename =~ m/converted_custom_deities/ or
+		    $filename =~ m/converted_custom_ideas/ or
+		    $filename =~ m/converted_heresies/ or
+		    $filename =~ m/converted_misc/ or
+		    $filename =~ m/converted_religions/ or
+		    $filename =~ m/sunset_invasion_custom_countries/ or
+		    $filename =~ m/sunset_invasion_custom_ideas/ or
+		    $filename =~ m/sunset_invasion_custom_technology_groups/) {
+			if ($c2fl == 0) {
+				unlink encode('locale_fs', "$dir1/$filename");
+			}
+			next;
+		}
 		open(my $file, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir1/$filename"));
 		my @strs;
 		push(@strs, "\x{FEFF}");
@@ -671,8 +671,8 @@ sub ck2_to_eu4_modsave {
 			# деление строки
 			my ($tag, $num, $txt, $cmm) = &yml_string($str);
 			# обработка строки ##TODO: проверить конвертацию всех поддерживаемых символов через DLC-конвертор
-			$txt =~ y(Ђѓ€ЉЊЋљњћџЎўЈҐЁЄЇІіґё№єјЅѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя)
-			         (€ƒˆŠŒŽšœžŸ¡¢£¥¨ª¯²³´¸¹º¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ);
+			$txt =~ y(‚ѓ„…†‡€‰Љ‹ЊЋ‘’“”•–—™љ›њћџ ЎўҐ¦Ё©Є«¬®Ї°±Ііґµ¶·ё№є»јѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя)
+			         (‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ);
 			if ($cpfl eq 'cp1251') {
 				if ($filename =~ m/converted_cultures/) {
 					$txt =~ s/\x7f\x11$/àÿ/;

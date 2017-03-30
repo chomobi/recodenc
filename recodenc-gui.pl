@@ -220,8 +220,6 @@ $mw -> g_wm_title("Recodenc v$VERSION");
 		$frame_cnv_buttons -> new_ttk__button(-text => 'Конвертировать (CP1252+CYR)', -command => [\&w_recodenc_ck2_to_eu4_modsave, 'cp1252pcyr']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
 		$frame_cnv_buttons -> g_grid_columnconfigure(0, -weight => 1, -uniform => 'b');
 		$frame_cnv_buttons -> g_grid_columnconfigure(1, -weight => 1, -uniform => 'b');
-		# предупреждение
-		$page_cnv -> new_ttk__label(-text => 'Представленные здесь инструменты, скорее всего, работают с ошибками. Просматривайте результат обработки.', -foreground => 'red', -justify => 'left', -wraplength => 600) -> g_grid(-column => 0, -columnspan => 3, -row => 3, -sticky => 'ew');
 	$page_cnv -> g_grid_columnconfigure(1, -weight => 1);
 	# вкладка PTX
 	$page_ptx = $mw -> new_ttk__frame();
