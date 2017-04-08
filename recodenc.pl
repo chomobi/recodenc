@@ -78,19 +78,23 @@ if    ($mode eq 'e' or $mode eq 'eu4') {
 	my $fl;
 	my $encoding_local;
 	# разрешение кодировки
-	if ($actn == $ACTION_ENCODE or $actn == $ACTION_DECODE) {
+	if    ($actn == $ACTION_ENCODE) {
 		if    (!defined($encoding)) {die 'Кодировка не задана!'}
-		elsif ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = 'cp1252pcyr'}
-		elsif ($encoding eq 'cp1251')        {$encoding_local = 'cp1251'}
+		elsif ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::ENC_CP1252PCYR}
+		elsif ($encoding eq 'cp1251')        {$encoding_local = $Recodenc::ENC_CP1251}
 	}
-	if ($actn == $ACTION_DECODE) {$encoding_local = "d_$encoding_local"}
-	if ($actn == $ACTION_TRANSLIT) {$encoding_local = 'translit'}
+	elsif ($actn == $ACTION_DECODE) {
+		if    (!defined($encoding)) {die 'Кодировка не задана!'}
+		elsif ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::DEC_CP1252PCYR}
+		elsif ($encoding eq 'cp1251')        {$encoding_local = $Recodenc::DEC_CP1251}
+	}
+	elsif ($actn == $ACTION_TRANSLIT) {$encoding_local = $Recodenc::ENC_TRANSLIT}
 	# запуск функции
 	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::eu4_l10n($encoding_local, 1, $dirs[0], $dirs[1])
+		$fl = Recodenc::eu4_l10n($encoding_local, $Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1])
 	}
 	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::eu4_l10n($encoding_local, 0, $dirs[0], '')
+		$fl = Recodenc::eu4_l10n($encoding_local, $Recodenc::FL_OVERWRITE, $dirs[0], '')
 	}
 	else {
 		die "Каталог для обработки не задан!"
@@ -107,9 +111,9 @@ elsif ($mode eq 'c' or $mode eq 'ck2') {
 	# разрешение кодировки и запуск функции
 	if ($actn == $ACTION_ENCODE or $actn == $ACTION_TRANSLIT) {
 		if ($actn == $ACTION_ENCODE) {
-			if ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = 'cp1252pcyr'}
+			if ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::ENC_CP1252PCYR}
 		}
-		if ($actn == $ACTION_TRANSLIT) {$encoding_local = 'translit'}
+		if ($actn == $ACTION_TRANSLIT) {$encoding_local = $Recodenc::ENC_TRANSLIT}
 		$fl = Recodenc::ck2_l10n($encoding_local, @dirs);
 	}
 	if ($actn == $ACTION_TAGS) {
@@ -126,18 +130,18 @@ elsif ($mode eq 'f' or $mode eq 'fnt') {
 	my $fl;
 	my $encoding_local;
 	# разрешение кодировки
-	if    ($actn == $ACTION_CLEAN) {$encoding_local = 0}
+	if    ($actn == $ACTION_CLEAN) {$encoding_local = $Recodenc::ENC_NULL}
 	elsif (defined($encoding)) {
-		if    ($encoding eq 'cp1252+cyr-eu4') {$encoding_local = 'eu4'}
-		elsif ($encoding eq 'cp1252+cyr-ck2') {$encoding_local = 'ck2'}
-		elsif ($encoding eq 'cp1251') {$encoding_local = 'cp1251'}
+		if    ($encoding eq 'cp1252+cyr-eu4') {$encoding_local = $Recodenc::ENC_FNT_EU4}
+		elsif ($encoding eq 'cp1252+cyr-ck2') {$encoding_local = $Recodenc::ENC_FNT_CK2}
+		elsif ($encoding eq 'cp1251') {$encoding_local = $Recodenc::ENC_CP1251}
 	}
 	# запуск функции
 	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::eu4ck2_font($encoding_local, 1, $dirs[0], $dirs[1]);
+		$fl = Recodenc::eu4ck2_font($encoding_local, $Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1]);
 	}
 	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::eu4ck2_font($encoding_local, 0, $dirs[0], '');
+		$fl = Recodenc::eu4ck2_font($encoding_local, $Recodenc::FL_OVERWRITE, $dirs[0], '');
 	}
 	else {
 		die "Каталог для обработки не задан!"
@@ -152,14 +156,14 @@ elsif ($mode eq 'm' or $mode eq 'cnv') {
 	my $fl;
 	my $encoding_local;
 	# разрешение кодировки
-	if    ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = 'cp1252pcyr'}
-	elsif ($encoding eq 'cp1251')        {$encoding_local = 'cp1251'}
+	if    ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::ENC_CP1252PCYR}
+	elsif ($encoding eq 'cp1251')        {$encoding_local = $Recodenc::ENC_CP1251}
 	# запуск функции
 	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::ck2_to_eu4_modsave($encoding_local, 1, $dirs[0], $dirs[1]);
+		$fl = Recodenc::ck2_to_eu4_modsave($encoding_local, $Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1]);
 	}
 	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::ck2_to_eu4_modsave($encoding_local, 0, $dirs[0], '');
+		$fl = Recodenc::ck2_to_eu4_modsave($encoding_local, $Recodenc::FL_OVERWRITE, $dirs[0], '');
 	}
 	else {
 		die "Каталог для обработки не задан!"
@@ -174,10 +178,10 @@ elsif ($mode eq 't' or $mode eq 'ptx') {
 	my $fl;
 	# запуск функции
 	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::plaintext(1, $dirs[0], $dirs[1]);
+		$fl = Recodenc::plaintext($Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1]);
 	}
 	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::plaintext(0, $dirs[0], '');
+		$fl = Recodenc::plaintext($Recodenc::FL_OVERWRITE, $dirs[0], '');
 	}
 	else {
 		die "Каталог для обработки не задан!"

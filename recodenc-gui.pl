@@ -141,16 +141,16 @@ $mw -> g_wm_title("Recodenc v$VERSION");
 		# кнопки
 		$frame_eu4_buttons = $page_eu4 -> new_ttk__frame();
 		$frame_eu4_buttons -> g_grid(-column => 0, -columnspan => 3, -row => 2, -sticky => 'ew');
-		$frame_eu4_buttons -> new_ttk__button(-text => 'Кодировать (CP1251)', -command => [\&w_recodenc_eu4_l10n, 'cp1251']) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
-		$frame_eu4_buttons -> new_ttk__button(-text => 'Кодировать (CP1252+CYR)', -command => [\&w_recodenc_eu4_l10n, 'cp1252pcyr']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
-		$frame_eu4_buttons -> new_ttk__button(-text => 'Транслитерировать', -command => [\&w_recodenc_eu4_l10n, 'translit']) -> g_grid(-column => 2, -row => 0, -sticky => 'ew');
+		$frame_eu4_buttons -> new_ttk__button(-text => 'Кодировать (CP1251)', -command => [\&w_recodenc_eu4_l10n, $Recodenc::ENC_CP1251]) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+		$frame_eu4_buttons -> new_ttk__button(-text => 'Кодировать (CP1252+CYR)', -command => [\&w_recodenc_eu4_l10n, $Recodenc::ENC_CP1252PCYR]) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$frame_eu4_buttons -> new_ttk__button(-text => 'Транслитерировать', -command => [\&w_recodenc_eu4_l10n, $Recodenc::ENC_TRANSLIT]) -> g_grid(-column => 2, -row => 0, -sticky => 'ew');
 		$frame_eu4_buttons -> g_grid_columnconfigure(0, -weight => 1, -uniform => 'b');
 		$frame_eu4_buttons -> g_grid_columnconfigure(1, -weight => 1, -uniform => 'b');
 		$frame_eu4_buttons -> g_grid_columnconfigure(2, -weight => 1, -uniform => 'b');
 		$frame_eu4_buttons2 = $page_eu4 -> new_ttk__frame();
 		$frame_eu4_buttons2 -> g_grid(-column => 0, -columnspan => 3, -row => 3, -sticky => 'ew');
-		$frame_eu4_buttons2 -> new_ttk__button(-text => 'Декодировать (CP1251)', -command => [\&w_recodenc_eu4_l10n, 'd_cp1251']) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
-		$frame_eu4_buttons2 -> new_ttk__button(-text => 'Декодировать (CP1252+CYR)', -command => [\&w_recodenc_eu4_l10n, 'd_cp1252pcyr']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$frame_eu4_buttons2 -> new_ttk__button(-text => 'Декодировать (CP1251)', -command => [\&w_recodenc_eu4_l10n, $Recodenc::DEC_CP1251]) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+		$frame_eu4_buttons2 -> new_ttk__button(-text => 'Декодировать (CP1252+CYR)', -command => [\&w_recodenc_eu4_l10n, $Recodenc::DEC_CP1252PCYR]) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
 		$frame_eu4_buttons2 -> g_grid_columnconfigure(0, -weight => 1, -uniform => 'b');
 		$frame_eu4_buttons2 -> g_grid_columnconfigure(1, -weight => 1, -uniform => 'b');
 	$page_eu4 -> g_grid_columnconfigure(1, -weight => 1);
@@ -172,8 +172,8 @@ $mw -> g_wm_title("Recodenc v$VERSION");
 		# кнопки
 		$frame_ck2_buttons = $page_ck2 -> new_ttk__frame();
 		$frame_ck2_buttons -> g_grid(-column => 0, -columnspan => 3, -row => 3, -sticky => 'ew');
-		$frame_ck2_buttons -> new_ttk__button(-text => 'Кодировать (CP1252+CYR)', -command => [\&w_recodenc_ck2_l10n, 'cp1252pcyr']) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
-		$frame_ck2_buttons -> new_ttk__button(-text => 'Транслитерировать', -command => [\&w_recodenc_ck2_l10n, 'translit']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$frame_ck2_buttons -> new_ttk__button(-text => 'Кодировать (CP1252+CYR)', -command => [\&w_recodenc_ck2_l10n, $Recodenc::ENC_CP1252PCYR]) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+		$frame_ck2_buttons -> new_ttk__button(-text => 'Транслитерировать', -command => [\&w_recodenc_ck2_l10n, $Recodenc::ENC_TRANSLIT]) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
 		$frame_ck2_buttons -> new_ttk__button(-text => 'Только тэгы', -command => \&w_recodenc_ck2_l10n_tags) -> g_grid(-column => 2, -row => 0, -sticky => 'ew');
 		$frame_ck2_buttons -> g_grid_columnconfigure(0, -weight => 1, -uniform => 'b');
 		$frame_ck2_buttons -> g_grid_columnconfigure(1, -weight => 1, -uniform => 'b');
@@ -193,10 +193,10 @@ $mw -> g_wm_title("Recodenc v$VERSION");
 		# кнопки
 		$frame_fnt_buttons = $page_fnt -> new_ttk__frame();
 		$frame_fnt_buttons -> g_grid(-column => 0, -columnspan => 3, -row => 2, -sticky => 'ew');
-		$frame_fnt_buttons -> new_ttk__button(-text => 'Очистить', -command => [\&w_recodenc_eu4ck2_font, '0']) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
-		$frame_fnt_buttons -> new_ttk__button(-text => 'CP1252+CYR-EU4', -command => [\&w_recodenc_eu4ck2_font, 'eu4']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
-		$frame_fnt_buttons -> new_ttk__button(-text => 'CP1252+CYR-CK2', -command => [\&w_recodenc_eu4ck2_font, 'ck2']) -> g_grid(-column => 2, -row => 0, -sticky => 'ew');
-		$frame_fnt_buttons -> new_ttk__button(-text => 'CP1251', -command => [\&w_recodenc_eu4ck2_font, 'cp1251']) -> g_grid(-column => 3, -row => 0, -sticky => 'ew');
+		$frame_fnt_buttons -> new_ttk__button(-text => 'Очистить', -command => [\&w_recodenc_eu4ck2_font, $Recodenc::ENC_NULL]) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+		$frame_fnt_buttons -> new_ttk__button(-text => 'CP1252+CYR-EU4', -command => [\&w_recodenc_eu4ck2_font, $Recodenc::ENC_FNT_EU4]) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$frame_fnt_buttons -> new_ttk__button(-text => 'CP1252+CYR-CK2', -command => [\&w_recodenc_eu4ck2_font, $Recodenc::ENC_FNT_CK2]) -> g_grid(-column => 2, -row => 0, -sticky => 'ew');
+		$frame_fnt_buttons -> new_ttk__button(-text => 'CP1251', -command => [\&w_recodenc_eu4ck2_font, $Recodenc::ENC_CP1251]) -> g_grid(-column => 3, -row => 0, -sticky => 'ew');
 		$frame_fnt_buttons -> g_grid_columnconfigure(0, -weight => 1, -uniform => 'b');
 		$frame_fnt_buttons -> g_grid_columnconfigure(1, -weight => 1, -uniform => 'b');
 		$frame_fnt_buttons -> g_grid_columnconfigure(2, -weight => 1, -uniform => 'b');
@@ -216,8 +216,8 @@ $mw -> g_wm_title("Recodenc v$VERSION");
 		# кнопки
 		$frame_cnv_buttons = $page_cnv -> new_ttk__frame();
 		$frame_cnv_buttons -> g_grid(-column => 0, -columnspan => 3, -row => 2, -sticky => 'ew');
-		$frame_cnv_buttons -> new_ttk__button(-text => 'Конвертировать (CP1251)', -command => [\&w_recodenc_ck2_to_eu4_modsave, 'cp1251']) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
-		$frame_cnv_buttons -> new_ttk__button(-text => 'Конвертировать (CP1252+CYR)', -command => [\&w_recodenc_ck2_to_eu4_modsave, 'cp1252pcyr']) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
+		$frame_cnv_buttons -> new_ttk__button(-text => 'Конвертировать (CP1251)', -command => [\&w_recodenc_ck2_to_eu4_modsave, $Recodenc::ENC_CP1251]) -> g_grid(-column => 0, -row => 0, -sticky => 'ew');
+		$frame_cnv_buttons -> new_ttk__button(-text => 'Конвертировать (CP1252+CYR)', -command => [\&w_recodenc_ck2_to_eu4_modsave, $Recodenc::ENC_CP1252PCYR]) -> g_grid(-column => 1, -row => 0, -sticky => 'ew');
 		$frame_cnv_buttons -> g_grid_columnconfigure(0, -weight => 1, -uniform => 'b');
 		$frame_cnv_buttons -> g_grid_columnconfigure(1, -weight => 1, -uniform => 'b');
 	$page_cnv -> g_grid_columnconfigure(1, -weight => 1);
@@ -288,7 +288,7 @@ sub w_recodenc_eu4_l10n {
 # Конвертор файлов локализации CK2
 sub w_recodenc_ck2_l10n {
 	&win_busy();
-	my $fl = Recodenc::ck2_l10n(shift, $config{'ck2_origen'}, $config{'ck2_origru'}, $config{'ck2_saveru'});
+	my $fl = Recodenc::ck2_l10n(shift, $config{ck2_origen}, $config{ck2_origru}, $config{ck2_saveru});
 	if ($fl == $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с английской локализацией!'); return $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с русской локализацией!'); return $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог для сохранения локализации!'); return $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND}
@@ -299,7 +299,7 @@ sub w_recodenc_ck2_l10n {
 # Вывод тэгов локализации CK2
 sub w_recodenc_ck2_l10n_tags {
 	&win_busy();
-	my $fl = Recodenc::ck2_l10n_tags($config{'ck2_origen'}, $config{'ck2_origru'}, $config{'ck2_saveru'});
+	my $fl = Recodenc::ck2_l10n_tags($config{ck2_origen}, $config{ck2_origru}, $config{ck2_saveru});
 	if ($fl == $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с английской локализацией!'); return $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог с русской локализацией!'); return $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND) {&win_unbusy('Не найден каталог для сохранения локализации!'); return $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND}
@@ -311,7 +311,7 @@ sub w_recodenc_ck2_l10n_tags {
 # Очистка и модификация карт шрифтов
 sub w_recodenc_eu4ck2_font {
 	&win_busy();
-	my $fl = Recodenc::eu4ck2_font(shift, $config{'fnt_c2'}, $config{'fnt_cat1'}, $config{'fnt_cat2'});
+	my $fl = Recodenc::eu4ck2_font(shift, $config{fnt_c2}, $config{fnt_cat1}, $config{fnt_cat2});
 	if ($fl == $Recodenc::FL_FNT_SRC_DIR_NOT_FOUND) {&win_unbusy('Каталог с исходными данными не найден!'); return $Recodenc::FL_FNT_SRC_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_FNT_DST_DIR_NOT_FOUND) {&win_unbusy('Каталог для сохранения не найден!'); return $Recodenc::FL_FNT_DST_DIR_NOT_FOUND}
 	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {&win_unbusy('Каталог с исходными данными и каталог назначения совпадают!'); return $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME}
