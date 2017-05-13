@@ -40,10 +40,10 @@ use Encode::Locale;
 binmode(STDIN, ":encoding(console_in)");
 binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
-@ARGV = map {decode('console_in', $_)} @ARGV;
+@ARGV = map {decode('locale', $_)} @ARGV;
 
 *PROGNAME = \'Recodenc';
-*VERSION  = \'0.5.1';
+*VERSION  = \'0.6.0';
 *ACTION_ENCODE = \1;
 *ACTION_DECODE = \2;
 *ACTION_TRANSLIT = \3;
@@ -52,9 +52,9 @@ binmode(STDERR, ":encoding(console_out)");
 *HV_HELP = \1;
 *HV_VERSION = \2;
 
-my $mode = 'eu4';
+my $mode = 'e';
 my $actn = $ACTION_ENCODE;
-my $encoding = 'cp1252+cyr-eu4';
+my $encoding = 'cp1252cyreu4';
 my $hv = 0;
 my @dirs;
 
@@ -74,124 +74,138 @@ elsif ($hv == $HV_VERSION) {&version(); exit(0)}
 @dirs = @ARGV;
 
 if    ($mode eq 'e' or $mode eq 'eu4') {
-	# объявление локальных переменных
-	my $fl;
-	my $encoding_local;
-	# разрешение кодировки
-	if    ($actn == $ACTION_ENCODE) {
-		if    (!defined($encoding)) {die 'Кодировка не задана!'}
-		elsif ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::ENC_CP1252PCYR}
-		elsif ($encoding eq 'cp1251')        {$encoding_local = $Recodenc::ENC_CP1251}
+	proc_fl(Recodenc::l10n_eu4(det_enc('eu4'), @dirs));
+}
+elsif ($mode eq 'l' or $mode eq 'eu4l') {
+	if ($actn != $ACTION_TAGS) {
+		proc_fl(Recodenc::l10n_eu4_lite(det_enc('eu4'), @dirs));
 	}
-	elsif ($actn == $ACTION_DECODE) {
-		if    (!defined($encoding)) {die 'Кодировка не задана!'}
-		elsif ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::DEC_CP1252PCYR}
-		elsif ($encoding eq 'cp1251')        {$encoding_local = $Recodenc::DEC_CP1251}
+	elsif ($actn == $ACTION_TAGS) {
+		proc_fl(Recodenc::l10n_eu4_tags(@dirs));
 	}
-	elsif ($actn == $ACTION_TRANSLIT) {$encoding_local = $Recodenc::ENC_TRANSLIT}
-	# запуск функции
-	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::eu4_l10n($encoding_local, $Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1])
-	}
-	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::eu4_l10n($encoding_local, $Recodenc::FL_OVERWRITE, $dirs[0], '')
-	}
-	else {
-		die "Каталог для обработки не задан!"
-	}
-	# обработка ошибок
-	if    ($fl == $Recodenc::FL_EU4_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
-	elsif ($fl == $Recodenc::FL_EU4_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
-	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
+}
+elsif ($mode eq 'd' or $mode eq 'eu4d') {
+	proc_fl(Recodenc::l10n_eu4_dlc(@dirs));
+
 }
 elsif ($mode eq 'c' or $mode eq 'ck2') {
-	# объявление локальных переменных
-	my $fl;
-	my $encoding_local;
-	# разрешение кодировки и запуск функции
-	if ($actn == $ACTION_ENCODE or $actn == $ACTION_TRANSLIT) {
-		if ($actn == $ACTION_ENCODE) {
-			if ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::ENC_CP1252PCYR}
-		}
-		if ($actn == $ACTION_TRANSLIT) {$encoding_local = $Recodenc::ENC_TRANSLIT}
-		$fl = Recodenc::ck2_l10n($encoding_local, @dirs);
+	proc_fl(Recodenc::l10n_ck2(det_enc('ck2'), @dirs));
+}
+elsif ($mode eq 'k' or $mode eq 'ck2l') {
+	if ($actn != $ACTION_TAGS) {
+		proc_fl(Recodenc::l10n_ck2_lite(det_enc('ck2'), @dirs));
 	}
 	if ($actn == $ACTION_TAGS) {
-		$fl = Recodenc::ck2_l10n_tags(@dirs);
+		proc_fl(Recodenc::l10n_ck2_tags(@dirs));
 	}
-	# обработка ошибок
-	if    ($fl == $Recodenc::FL_CK2_SRCEN_DIR_NOT_FOUND) {die 'Не найден каталог с английской локализацией!'}
-	elsif ($fl == $Recodenc::FL_CK2_SRCRU_DIR_NOT_FOUND) {die 'Не найден каталог с русской локализацией!'}
-	elsif ($fl == $Recodenc::FL_CK2_DSTRU_DIR_NOT_FOUND) {die 'Не найден каталог для сохранения локализации!'}
-	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
 }
 elsif ($mode eq 'f' or $mode eq 'fnt') {
-	# объявление локальных переменных
-	my $fl;
-	my $encoding_local;
-	# разрешение кодировки
-	if    ($actn == $ACTION_CLEAN) {$encoding_local = $Recodenc::ENC_NULL}
-	elsif (defined($encoding)) {
-		if    ($encoding eq 'cp1252+cyr-eu4') {$encoding_local = $Recodenc::ENC_FNT_EU4}
-		elsif ($encoding eq 'cp1252+cyr-ck2') {$encoding_local = $Recodenc::ENC_FNT_CK2}
-		elsif ($encoding eq 'cp1251') {$encoding_local = $Recodenc::ENC_CP1251}
-	}
-	# запуск функции
-	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::eu4ck2_font($encoding_local, $Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1]);
-	}
-	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::eu4ck2_font($encoding_local, $Recodenc::FL_OVERWRITE, $dirs[0], '');
-	}
-	else {
-		die "Каталог для обработки не задан!"
-	}
-	# обработка ошибок
-	if    ($fl == $Recodenc::FL_FNT_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
-	elsif ($fl == $Recodenc::FL_FNT_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
-	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
+	proc_fl(Recodenc::font(det_enc(), @dirs));
 }
 elsif ($mode eq 'm' or $mode eq 'cnv') {
-	# объявление локальных переменных
-	my $fl;
-	my $encoding_local;
-	# разрешение кодировки
-	if    ($encoding =~ m/^cp1252\+cyr/) {$encoding_local = $Recodenc::ENC_CP1252PCYR}
-	elsif ($encoding eq 'cp1251')        {$encoding_local = $Recodenc::ENC_CP1251}
-	# запуск функции
-	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::ck2_to_eu4_modsave($encoding_local, $Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1]);
-	}
-	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::ck2_to_eu4_modsave($encoding_local, $Recodenc::FL_OVERWRITE, $dirs[0], '');
-	}
-	else {
-		die "Каталог для обработки не задан!"
-	}
-	# обработка ошибок
-	if    ($fl == $Recodenc::FL_CNV_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
-	elsif ($fl == $Recodenc::FL_CNV_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
-	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
+	proc_fl(Recodenc::modexport(det_enc('eu4'), @dirs));
 }
 elsif ($mode eq 't' or $mode eq 'ptx') {
-	# объявление локальных переменных
-	my $fl;
-	# запуск функции
-	if (scalar(@dirs) > 1) {
-		$fl = Recodenc::plaintext($Recodenc::FL_WRITEDOWN, $dirs[0], $dirs[1]);
-	}
-	elsif (scalar(@dirs) == 1) {
-		$fl = Recodenc::plaintext($Recodenc::FL_OVERWRITE, $dirs[0], '');
-	}
-	else {
-		die "Каталог для обработки не задан!"
-	}
-	# обработка ошибок
-	if    ($fl == $Recodenc::FL_PTX_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
-	elsif ($fl == $Recodenc::FL_PTX_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
-	elsif ($fl == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
+	proc_fl(Recodenc::plaintext(det_enc(), @dirs));
 }
 exit(0);
+################################################################################
+# СЕРВИСНЫЕ ФУНКЦИИ
+################################################################################
+# Определение кодировки
+sub det_enc {
+	my $gam = shift; # игра: eu4 — EU4, ck2 — CK2
+	if    ($actn == $ACTION_ENCODE) {
+		if    ($encoding eq 'cp1251') {
+			return $Recodenc::ENC_CP1251;
+		}
+		elsif ($encoding eq 'cp1252cyreu4') {
+			if ($gam eq 'ck2') {
+				die "Задана неверная локализация кодировки CP1252CYR.\n";
+			}
+			else {
+				return $Recodenc::ENC_CP1252CYREU4;
+			}
+		}
+		elsif ($encoding eq 'cp1252cyrck2') {
+			if ($gam eq 'eu4') {
+				die "Задана неверная локализация кодировки CP1252CYR.\n";
+			}
+			else {
+				return $Recodenc::ENC_CP1252CYRCK2;
+			}
+		}
+		elsif ($encoding eq 'cp1252cyr') {
+			if    ($gam eq 'eu4') {
+				return $Recodenc::ENC_CP1252CYREU4;
+			}
+			elsif ($gam eq 'ck2') {
+				return $Recodenc::ENC_CP1252CYRCK2;
+			}
+			else {
+				die "CP1252CYR без указания движка игры в недопустимом месте.\n";
+			}
+		}
+		else {
+			die "Не получилось определить кодировку для операции кодирования.\n";
+		}
+	}
+	elsif ($actn == $ACTION_DECODE) {
+		if    ($encoding eq 'cp1251') {
+			return $Recodenc::DEC_CP1251;
+		}
+		elsif ($encoding eq 'cp1252cyreu4') {
+			if ($gam eq 'ck2') {
+				die "Задана неверная локализация кодировки CP1252CYR.\n";
+			}
+			else {
+				return $Recodenc::DEC_CP1252CYREU4;
+			}
+		}
+		elsif ($encoding eq 'cp1252cyrck2') {
+			if ($gam eq 'eu4') {
+				die "Задана неверная локализация кодировки CP1252CYR.\n";
+			}
+			else {
+				return $Recodenc::DEC_CP1252CYRCK2;
+			}
+		}
+		elsif ($encoding eq 'cp1252cyr') {
+			if    ($gam eq 'eu4') {
+				return $Recodenc::DEC_CP1252CYREU4;
+			}
+			elsif ($gam eq 'ck2') {
+				return $Recodenc::DEC_CP1252CYRCK2;
+			}
+			else {
+				die "CP1252CYR без указания движка игры в недопустимом месте.\n";
+			}
+		}
+		else {
+			die "Не получилось определить кодировку для операции декодирования.\n";
+		}
+	}
+	elsif ($actn == $ACTION_TRANSLIT) {
+		return $Recodenc::ENC_TRANSLIT;
+	}
+	elsif ($actn == $ACTION_CLEAN) {
+		return $Recodenc::ENC_NULL;
+	}
+	else {
+		die "Не получилось определить кодировку.\n";
+	}
+}
+# Обработка ошибок
+sub proc_fl {
+	if    ($_[0] == 0) {return 0}
+	elsif ($_[0] == $Recodenc::FL_SRC_DIR_NOT_FOUND) {die "Каталог с исходными данными не найден!\n"}
+	elsif ($_[0] == $Recodenc::FL_DST_DIR_NOT_FOUND) {die "Каталог для сохранения не найден!\n"}
+	elsif ($_[0] == $Recodenc::FL_SRCEN_DIR_NOT_FOUND) {die "Не найден каталог с английской локализацией!\n"}
+	elsif ($_[0] == $Recodenc::FL_SRCRU_DIR_NOT_FOUND) {die "Не найден каталог с русской локализацией!\n"}
+	elsif ($_[0] == $Recodenc::FL_DSTRU_DIR_NOT_FOUND) {die "Не найден каталог для сохранения локализации!\n"}
+	elsif ($_[0] == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die "Каталог с исходными данными и каталог назначения совпадают!\n"}
+	else {die "Неизвестный код ошибки: $_[0]\n"}
+}
 ################################################################################
 # ФУНКЦИИ ПОДДЕРЖКИ ИНТЕРФЕЙСА КОМАНДНОЙ СТРОКИ
 ################################################################################
@@ -209,41 +223,67 @@ print <<'EOT';
 обязательны и для коротких. Вертикальная черта означает "ИЛИ".
 При указании каталогов в конце не должно быть косой черты.
 
--m e|c|f|m|t
---mode=eu4|ck2|fnt|cnv|ptx
+-m e|l|d|c|k|f|m|t
+--mode=eu4|eu4l|eu4d|ck2|ck2l|fnt|cnv|ptx
                    Устанавливает режим обработки файлов.
-                   e eu4 EU4 (по умолчанию)
-                   c ck2 CK2
-                   f fnt FNT Шрифт
-                   m cnv CNV Мод сохранения
-                   t ptx PTX Простой текст
+                   e eu4  EU4 (по умолчанию)
+                   l eu4l EU4Lite Сборка лёгкой версии локализации
+                   d eu4d EU4Dlc  Извлечение локализации из DLC
+                   c ck2  CK2
+                   k ck2l CK2Lite Сборка лёгкой версии локализации
+                   f fnt  FNT     Шрифт
+                   m cnv  CNV     Мод сохранения
+                   t ptx  PTX     Простой текст
                    Короткие режимы можно указывать в длинном параметре
                    и наоборот.
 -n, --encode       Кодировать. (по умолчанию)
 -d, --decode       Декодировать.
 -t, --translit     Транслитерировать.
--e, --encoding=cp1252+cyr|cp1252+cyr-eu4|cp1252+cyr-ck2|cp1251
+-e, --encoding=cp1252cyr|cp1252cyreu4|cp1252cyrck2|cp1251
                    Устанавливает кодировку.
-                   По умолчанию cp1252+cyr-eu4.
+                   По умолчанию cp1252cyreu4.
 -g, --tags         Тэгы.
 -c, --clean        Очистить.
 -h, --help         Показать этот текст и завершить выполнение.
 -v, --version      Показать версию и завершить выполнение.
 
-Указание суффикса игры в кодировке cp1252+cyr обязательно только для
+Указание суффикса игры в кодировке cp1252cyr обязательно только для
 режима преобразования шрифтов. В остальных режимах он не учитывается.
 За один запуск обрабатывается только один исходный каталог (вложенные
-не поддерживаются, как и отдельные файлы). 
+не поддерживаются, как и отдельные файлы).
 
 Режим EU4
 Действия: -n|-d|-t. Транслитерация указания кодировки не требует.
-Кодировки: cp1251, cp1252+cyr.
+Кодировки: cp1251, cp1252cyr.
 При указании одного каталога изменяются файлы в нём. При указании двух
 каталогов файлы читаются из первого каталога и сохраняются во втором.
 Остальные каталоги отбрасываются.
 
+Режим EU4Lite
+Действия: -n|-t|-g.
+Кодировки: cp1251, cp1252cyr.
+Требуется указание трёх каталогов:
+  1) Каталог с оригинальной английской локализацией.
+  2) Каталог с русской локализацией.
+  3) Каталог для сохранения результирующей локализации.
+Остальные каталоги отбрасываются.
+
+Режим EU4Dlc
+Требуется указание двух каталогов:
+  1) Каталог с zip-архивами DLC.
+  2) Каталог для сохранения извлечённой локализации.
+Остальные каталоги отбрасываются.
+
 Режим CK2
-Действия: -n|-t|-g. Указание кодировки не требуется.
+Действия: -n|-d|-t. Транслитерация указания кодировки не требует.
+Кодировки: cp1251, cp1252cyr.
+При указании одного каталога изменяются файлы в нём. При указании двух
+каталогов файлы читаются из первого каталога и сохраняются во втором.
+Остальные каталоги отбрасываются.
+
+Режим CK2Lite
+Действия: -n|-t|-g.
+Кодировки: cp1251, cp1252cyr.
 Требуется указание трёх каталогов:
   1) Каталог с оригинальной английской локализацией.
   2) Каталог с русской локализацией.
@@ -252,20 +292,21 @@ print <<'EOT';
 
 Режим FNT
 Действия: -с|-e. Указание кодировки означает обработку указанной
-кодировки. Указывать кодировку CP1252+CYR следует с суффиксом игры,
-например: cp1252+cyr-ck2.
+кодировки. Указывать кодировку CP1252CYR следует с суффиксом игры,
+например: cp1252cyrck2.
 При указании одного каталога изменяются файлы в нём. При указании двух
 каталогов файлы читаются из первого каталога и сохраняются во втором.
 Остальные каталоги отбрасываются.
 
 Режим CNV
-Указание кодировки обязательно.
+Кодировки: cp1251, cp1252cyr. Указание кодировки обязательно.
 При указании одного каталога изменяются файлы в нём. При указании двух
 каталогов файлы читаются из первого каталога и сохраняются во втором.
 Остальные каталоги отбрасываются.
 
 Режим PTX
-Указание ключей не требуется.
+Действия: -n|-d|-t. Транслитерация указания кодировки не требует.
+Кодировки: cp1251, cp1252cyrck2, cp1252cyreu4.
 При указании одного каталога изменяются файлы в нём. При указании двух
 каталогов файлы читаются из первого каталога и сохраняются во втором.
 Остальные каталоги отбрасываются.

@@ -20,66 +20,69 @@ package Recodenc;
 ################################################################################
 # SRC — исходник
 # DST — назначение
+=encoding utf8
+
+=head1 НАЗВАНИЕ
+
+Recodenc — преобразование текстовых файлов и файлов специального формата между UTF8 и кодировками Recodenc (CP1252CYREU4, CP1252CYRCK2, CP1252CP1251)
+
+=head1 СИНТАКСИС
+
+    my $flag = l10n_eu4($Recodenc::ENC_CP1252CYREU4, $dir1, $dir2);
+    if    ($flag == $Recodenc::FL_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
+    elsif ($flag == $Recodenc::FL_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
+    elsif ($flag == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
+
+=head1 ФУНКЦИИ
+
+=cut
 use utf8;
 use v5.18;
 use warnings;
 use integer;
 use vars qw(
 	@EXPORT_OK
-	$FL_EU4_SRC_DIR_NOT_FOUND
-	$FL_EU4_DST_DIR_NOT_FOUND
-	$FL_CK2_SRCEN_DIR_NOT_FOUND
-	$FL_CK2_SRCRU_DIR_NOT_FOUND
-	$FL_CK2_DSTRU_DIR_NOT_FOUND
-	$FL_FNT_SRC_DIR_NOT_FOUND
-	$FL_FNT_DST_DIR_NOT_FOUND
-	$FL_CNV_SRC_DIR_NOT_FOUND
-	$FL_CNV_DST_DIR_NOT_FOUND
-	$FL_PTX_SRC_DIR_NOT_FOUND
-	$FL_PTX_DST_DIR_NOT_FOUND
+	$FL_SRC_DIR_NOT_FOUND
+	$FL_DST_DIR_NOT_FOUND
+	$FL_SRCEN_DIR_NOT_FOUND
+	$FL_SRCRU_DIR_NOT_FOUND
+	$FL_DSTRU_DIR_NOT_FOUND
 	$FL_SRC_AND_DST_DIR_ARE_THE_SAME
 	$ENC_NULL
 	$ENC_CP1251
-	$ENC_CP1252PCYR
+	$ENC_CP1252CYREU4
+	$ENC_CP1252CYRCK2
 	$ENC_TRANSLIT
 	$DEC_CP1251
-	$DEC_CP1252PCYR
-	$ENC_FNT_EU4
-	$ENC_FNT_CK2
-	$FL_OVERWRITE
-	$FL_WRITEDOWN
+	$DEC_CP1252CYREU4
+	$DEC_CP1252CYRCK2
 	);
 use parent qw(Exporter);
 use File::Copy;
 use Cwd qw(abs_path);
+use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 use Encode qw(encode decode);
 use Encode::Locale;
-@EXPORT_OK = qw(eu4_l10n ck2_l10n ck2_l10n_tags eu4ck2_font ck2_to_eu4_modsave plaintext);
+use Encode::Recodenc;
+@EXPORT_OK = qw(l10n_eu4 l10n_eu4_lite l10n_eu4_tags l10n_eu4_dlc l10n_ck2 l10n_ck2_lite l10n_ck2_tags font modexport plaintext);
 
-*FL_EU4_SRC_DIR_NOT_FOUND = \1;
-*FL_EU4_DST_DIR_NOT_FOUND = \2;
-*FL_CK2_SRCEN_DIR_NOT_FOUND = \1;
-*FL_CK2_SRCRU_DIR_NOT_FOUND = \2;
-*FL_CK2_DSTRU_DIR_NOT_FOUND = \3;
-*FL_FNT_SRC_DIR_NOT_FOUND = \1;
-*FL_FNT_DST_DIR_NOT_FOUND = \2;
-*FL_CNV_SRC_DIR_NOT_FOUND = \1;
-*FL_CNV_DST_DIR_NOT_FOUND = \2;
-*FL_PTX_SRC_DIR_NOT_FOUND = \1;
-*FL_PTX_DST_DIR_NOT_FOUND = \2;
-*FL_SRC_AND_DST_DIR_ARE_THE_SAME = \4;
+*FL_SRC_DIR_NOT_FOUND = \1;
+*FL_DST_DIR_NOT_FOUND = \2;
+*FL_SRCEN_DIR_NOT_FOUND = \3;
+*FL_SRCRU_DIR_NOT_FOUND = \4;
+*FL_DSTRU_DIR_NOT_FOUND = \5;
+*FL_SRC_AND_DST_DIR_ARE_THE_SAME = \6;
 *ENC_NULL = \0;
 *ENC_CP1251 = \1;
-*ENC_CP1252PCYR = \2;
-*ENC_TRANSLIT = \3;
-*DEC_CP1251 = \4;
-*DEC_CP1252PCYR = \5;
-*ENC_FNT_EU4 = \2;
-*ENC_FNT_CK2 = \3;
-*FL_OVERWRITE = \0; # не изменять, т. к. привязано к флажкам в Tk
-*FL_WRITEDOWN = \1; # не изменять, т. к. привязано к флажкам в Tk
+*ENC_CP1252CYREU4 = \2;
+*ENC_CP1252CYRCK2 = \3;
+*ENC_TRANSLIT = \4;
+*DEC_CP1251 = \5;
+*DEC_CP1252CYREU4 = \6;
+*DEC_CP1252CYRCK2 = \7;
 
 # Примечания к константам:
+# - FL_* — одно пространство имён
 # - ENC_* и DEC_* — одно пространтсво имён
 # - ENC_FNT_* — кусок непересекающегося с ENC_* пространства имён
 
@@ -87,7 +90,7 @@ use Encode::Locale;
 # КОД ДЛЯ ВЫПОЛНЕНИЯ ПЕРЕД ВЫЗОВАМИ ФУНКЦИЙ
 ################################################################################
 # Объявление кодировок для FNT
-my %cp_1252pcyr_eu4 = (
+my %cp1252cyreu4 = (
 	352 => '138',
 	353 => '154',
 	338 => '140',
@@ -144,7 +147,7 @@ my %cp_1252pcyr_eu4 = (
 	1103 => '247'
 );
 
-my %cp_1252pcyr_ck2 = (
+my %cp1252cyrck2 = (
 	352 => '138',
 	353 => '154',
 	338 => '140',
@@ -201,7 +204,7 @@ my %cp_1252pcyr_ck2 = (
 	1103 => '247'
 );
 
-my %cp_1251 = (
+my %cp1251 = (
 	8218 => '130',
 	8222 => '132',
 	8230 => '133',
@@ -285,21 +288,42 @@ my %cp_1251 = (
 # ЭКСПОРТИРУЕМЫЕ ФУНКЦИИ
 ################################################################################
 # Encode Localisation for EU4
-# Код оригинальной функции сравнить с этой и удалить ненужное, сохранить справочную информацию.
-sub eu4_l10n {
+sub l10n_eu4 {
+=head2 l10n_eu4
+
+Функция для кодировки и декодировки локализации EU4.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+    $ENC_CP1251 # кодировать из UTF8 в CP1251
+    $ENC_CP1252CYREU4 # кодировать из UTF8 в CP1252CYREU4
+    $ENC_TRANSLIT # транслитерировать в рамках UTF8
+    $DEC_CP1251 # декодировать из CP1251 в UTF8
+    $DEC_CP1252CYREU4 # декодировать из CP1252CYREU4 в UTF8
+
+=head4 Параметр №2
+
+Каталог для обработки.
+
+=head4 Параметр №3
+
+Каталог сохранения.
+(Необязателен. При указании обработанные данные сохраняются в структуру файлов в указанном каталоге)
+
+=cut
 	# чтение параметров
-	my $cpfl = shift; # $ENC_CP1251 — CP1251; $ENC_CP1252PCYR — CP1252+CYR; $ENC_TRANSLIT — транслит; $DEC_CP1251 — декодировать CP1251; $DEC_CP1252PCYR — декодировать CP1252+CYR
-	my $c2fl = shift; # $FL_OVERWRITE — перезаписать; $FL_WRITEDOWN — сохранить в другое место
-	my $dir1 = shift; # каталог №1
-	my $dir2 = shift; # каталог №2
+	my ($cpfl, $dir1, $dir2) = @_;
 	# проверка параметров
-	unless (-d encode('locale_fs', $dir1)) {return $FL_EU4_SRC_DIR_NOT_FOUND};
-	if ($c2fl == $FL_WRITEDOWN) {
-		unless (-d encode('locale_fs', $dir2)) {return $FL_EU4_DST_DIR_NOT_FOUND}
-		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
+	unless (-d encode('locale_fs', $dir1)) {return $FL_SRC_DIR_NOT_FOUND};
+	if (defined($dir2)) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_DST_DIR_NOT_FOUND}
+		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq
+		    decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
 			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
 		}
-	};
+	}
 	# работа
 	opendir(my $ch, encode('locale_fs', $dir1));
 	my @filenames = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
@@ -311,33 +335,33 @@ sub eu4_l10n {
 		my @strs; # объявление хранилища строк
 		push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
 		while (my $str = <$filehandle>) {
+			chomp $str;
 			# запоминание и пропуск необрабатываемых строк
-			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, $str); next}
+			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
 			if ($str =~ m/^l_/) {
-				push(@strs, $str);
+				push(@strs, "$str\n");
 				if   ($str =~ m/^l_russian/) {$fl = 1}
 				else                         {$fl = 0}
 				next;
 			}
-			if ($fl eq 0) {push(@strs, $str); next}
-			chomp $str;
+			if ($fl eq 0) {push(@strs, "$str\n"); next}
 			# деление строки
 			my ($tag, $num, $txt, $cmm) = &yml_string($str);
 			# обработка строки
 			if    ($cpfl == $ENC_CP1251) {
-				&cyr_to_cp1251(\$txt);
+				$txt = decode('cp1252', encode('cp1252cp1251', $txt));
 			}
-			elsif ($cpfl == $ENC_CP1252PCYR) {
-				&cyr_to_cp1252pcyr_eu4(\$txt);
+			elsif ($cpfl == $ENC_CP1252CYREU4) {
+				$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
 			}
 			elsif ($cpfl == $ENC_TRANSLIT) {
 				&cyr_to_translit(\$txt);
 			}
 			elsif ($cpfl == $DEC_CP1251) {
-				&cp1251_to_cyr(\$txt);
+				$txt = decode('cp1252cp1251', encode('cp1252', $txt));
 			}
-			elsif ($cpfl == $DEC_CP1252PCYR) {
-				&cp1252pcyr_to_cyr_eu4(\$txt);
+			elsif ($cpfl == $DEC_CP1252CYREU4) {
+				$txt = decode('cp1252cyreu4', encode('cp1252', $txt));
 			}
 			# сохранение строки
 			if (length($cmm) > 0) {
@@ -347,31 +371,400 @@ sub eu4_l10n {
 				push(@strs, " $tag:$num \"$txt\"\n");
 			}
 		}
-		close($filehandle);
-		if ($c2fl == $FL_OVERWRITE) {
-			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir1/$filename"));
-			print $filehandle @strs;
-			close $filehandle;
+		close $filehandle;
+		undef $filehandle;
+		# запись результатов обработки
+		unless (defined($dir2)) {$dir2 = $dir1}
+		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$filename"));
+		print $filehandle @strs;
+		close $filehandle;
+	}
+	return 0;
+}
+# Build Lite Localisation for EU4
+sub l10n_eu4_lite {
+=head2 l10n_eu4_lite
+
+Функция для постройки Lite-локализации EU4.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+    $ENC_CP1251 # кодировать из UTF8 в CP1251
+    $ENC_CP1252CYREU4 # кодировать из UTF8 в CP1252CYREU4
+    $ENC_TRANSLIT # транслитерировать в рамках UTF8
+
+=head4 Параметр №2
+
+Каталог с оригинальной английской локализацией.
+
+=head4 Параметр №3
+
+Каталог с русской локализацией.
+
+=head4 Параметр №4
+
+Каталог для сохранения результата.
+
+=cut
+	# чтение параметров
+	my ($cpfl, $dir_orig_en, $dir_orig_ru, $dir_save_ru) = @_;
+	# проверка параметров
+	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_SRCEN_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_SRCRU_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_DSTRU_DIR_NOT_FOUND}
+	if (decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) or
+	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru))) or
+	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru)))) {
+		return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+	}
+	# работа
+	opendir(my $ch, encode('locale_fs', $dir_orig_ru));
+	my @filenames = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
+	closedir($ch);
+	foreach my $filename (@filenames) {
+		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
+		seek($filehandle, 3, 0);
+		my $fl = 0; # флаг нужности/ненужности обработки строк
+		my @strs;
+		push(@strs, "\x{FEFF}");
+		while (my $str = <$filehandle>) {
+			chomp $str;
+			# запоминание и пропуск необрабатываемых строк
+			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
+			if ($str =~ m/^l_/) {
+				push(@strs, "$str\n");
+				if   ($str =~ m/^l_russian/) {$fl = 1}
+				else                         {$fl = 0}
+				next;
+			}
+			if ($fl eq 0) {push(@strs, "$str\n"); next}
+			# деление строки
+			my ($tag, $num, $txt, $cmm) = &yml_string($str);
+			# обработка строки
+			if    ($cpfl == $ENC_CP1251) {
+				$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+			}
+			elsif ($cpfl == $ENC_CP1252CYREU4) {
+				$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
+			}
+			elsif ($cpfl == $ENC_TRANSLIT) {
+				&cyr_to_translit(\$txt);
+			}
+			# сохранение строки
+			if (length($cmm) > 0) {
+				push(@strs, " $tag:$num \"$txt\" #$cmm\n");
+			}
+			else {
+				push(@strs, " $tag:$num \"$txt\"\n");
+			}
 		}
-		elsif ($c2fl == $FL_WRITEDOWN) {
-			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$filename"));
-			print $filehandle @strs;
-			close $filehandle;
+		close $filehandle;
+		undef $filehandle;
+		# запись результатов обработки
+		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/$filename"));
+		print $filehandle @strs;
+		close $filehandle;
+	}
+	undef @filenames;
+	@filenames = ('prov_names_l_english.yml', 'prov_names_adj_l_english.yml');
+	foreach my $filename (@filenames) {
+		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', "$dir_orig_en/$filename");
+		seek($filehandle, 3, 0);
+		my @strs;
+		push(@strs, "\x{FEFF}");
+		while (my $str = <$filehandle>) {
+			chomp $str;
+			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
+			if ($str =~ m/^l_/) {
+				$str =~ s/l_english/l_russian/;
+				push(@strs, "$str\n");
+				next;
+			}
+			if ($cpfl == $ENC_CP1251) {
+				# деление строки
+				my ($tag, $num, $txt, $cmm) = &yml_string($str);
+				# обработка строки
+				$txt =~ y(ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ)
+				         (AAAAAAACEEEEIIIIDNOOOOOOUUUUYTsaaaaaaaceeeeiiiidnoooooouuuuyty);
+				# сохранение строки
+				if (length($cmm) > 0) {
+					push(@strs, " $tag:$num \"$txt\" #$cmm\n");
+				}
+				else {
+					push(@strs, " $tag:$num \"$txt\"\n");
+				}
+			}
+			else {push(@strs, "$str\n")}
+		}
+		close $filehandle;
+		undef $filehandle;
+		# запись результатов обработки
+		$filename =~ s/_l_english\.yml/_l_russian\.yml/;
+		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/$filename"));
+		print $filehandle @strs;
+		close $filehandle;
+	}
+	return 0;
+}
+# Print EU4 Tags
+sub l10n_eu4_tags {
+=head2 l10n_eu4_tags
+
+Функция для вывода тэгов локализации EU4.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+Каталог с оригинальной английской локализацией.
+
+=head4 Параметр №2
+
+Каталог с русской локализацией.
+
+=head4 Параметр №3
+
+Каталог для сохранения результата.
+
+=cut
+	# чтение параметров
+	my ($dir_orig_en, $dir_orig_ru, $dir_save_ru) = @_;
+	# проверка параметров
+	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_SRCEN_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_SRCRU_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_DSTRU_DIR_NOT_FOUND}
+	my @par = ($dir_orig_en, $dir_orig_ru, $dir_save_ru);
+	for (my $i = 0; $i < (scalar(@par) - 1); $i++) {
+		for (my $j = $i + 1; $j < scalar(@par); $j++) {
+			if (decode('locale_fs', abs_path(encode('locale_fs', $par[$i]))) eq decode('locale_fs', abs_path(encode('locale_fs', $par[$j])))) {
+				return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+			}
+		}
+	}
+	undef @par;
+	# работа
+	# русская локализация
+	opendir(my $ch, encode('locale_fs', $dir_orig_ru));
+	my @filenames = grep { m/\.yml$/ && $_ ne 'languages.yml' } map {decode('locale_fs', $_)} readdir $ch;
+	closedir($ch);
+	mkdir(encode('locale_fs', "$dir_save_ru/ru"));
+	foreach my $filename (@filenames) {
+		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
+		seek($filehandle, 3, 0);
+		my @strs;
+		push(@strs, "\x{FEFF}");
+		while (my $str = <$filehandle>) {
+			chomp $str;
+			# пропуск необрабатываемых строк
+			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/ or $str =~ m/^l_/) {next}
+			# деление строки
+			my ($tag, $num, undef, undef) = &yml_string($str);
+			# сохранение строки
+			push(@strs, "$tag:$num\n");
+		}
+		close $filehandle;
+		undef $filehandle;
+		# запись результатов обработки
+		$filename =~ s/_l_russian//;
+		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename"));
+		print $filehandle @strs;
+		close $filehandle;
+	}
+	undef $ch;
+	undef @filenames;
+	# английская локализация из /localisation/
+	opendir($ch, encode('locale_fs', $dir_orig_en));
+	@filenames = grep { m/_l_english\.yml$/ && $_ ne 'languages.yml' } map {decode('locale_fs', $_)} readdir $ch;
+	closedir($ch);
+	mkdir(encode('locale_fs', "$dir_save_ru/en"));
+	foreach my $filename (@filenames) {
+		open(my $filehandle, '<:crlf:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_en/$filename"));
+		seek($filehandle, 3, 0);
+		my @strs;
+		push(@strs, "\x{FEFF}");
+		while (my $str = <$filehandle>) {
+			chomp $str;
+			# пропуск необрабатываемых строк
+			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/ or $str =~ m/^l_/) {next}
+			# деление строки
+			my ($tag, $num, undef, undef) = &yml_string($str);
+			# сохранение строки
+			push(@strs, "$tag:$num\n");
+		}
+		close $filehandle;
+		undef $filehandle;
+		# запись результатов обработки
+		$filename =~ s/_l_english//;
+		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename"));
+		print $filehandle @strs;
+		close $filehandle;
+	}
+	undef $ch;
+	undef @filenames;
+	return 0;
+}
+sub l10n_eu4_dlc {
+=head2 l10n_eu4_dlc
+
+Функция для распаковки английской локализации из zip-архивов DLC.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+Каталог с zip-архивами DLC.
+
+=head4 Параметр №2
+
+Каталог назначения для распаковки.
+
+=cut
+	# чтение параметров
+	my ($dir_dlc, $dir_dst) = @_;
+	# проверка параметров
+	unless (-d encode('locale_fs', $dir_dlc)) {return $FL_SRC_DIR_NOT_FOUND};
+	unless (-d encode('locale_fs', $dir_dst)) {return $FL_DST_DIR_NOT_FOUND};
+	if (decode('locale_fs', abs_path(encode('locale_fs', $dir_dlc))) eq
+	    decode('locale_fs', abs_path(encode('locale_fs', $dir_dst)))) {
+		return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+	}
+	# работа
+	opendir(my $ch, encode('locale_fs', $dir_dlc));
+	my @filenames = grep { m/\.zip$/ } map {decode('locale_fs', $_)} readdir $ch;
+	closedir($ch);
+	foreach my $filename (@filenames) {
+		my $zip = Archive::Zip->new();
+		unless ($zip->read(encode('locale_fs', "$dir_dlc/$filename")) == AZ_OK) {die "При чтении архива `$filename' прозошла ошибка.\n"};
+		my @members = $zip->membersMatching('localisation/.*\.yml');
+		if (scalar(@members) > 0) {
+			foreach my $member (@members) {
+				my @flnm = split(/\//, $member->fileName());
+				my $flnm = $flnm[-1];
+				$zip->extractMemberWithoutPaths($member, encode('locale_fs', "$dir_dst/$flnm"));
+			}
 		}
 	}
 	return 0;
 }
 # Encode Localisation for CK2
-sub ck2_l10n {
+sub l10n_ck2 {
+=head2 l10n_ck2
+
+Функция для кодировки и декодировки локализации CK2.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+    $ENC_CP1251 # кодировать из UTF8 в CP1251
+    $ENC_CP1252CYRCK2 # кодировать из UTF8 в CP1252CYRCK2
+    $ENC_TRANSLIT # транслитерировать в CP1252
+    $DEC_CP1251 # декодировать из CP1251 в UTF8
+    $DEC_CP1252CYRCK2 # декодировать из CP1252CYRCK2 в UTF8
+
+=head4 Параметр №2
+
+Каталог для обработки.
+
+=head4 Параметр №3
+
+Каталог сохранения.
+(Необязателен. При указании обработанные данные сохраняются в структуру файлов в указанном каталоге)
+
+=cut
 	# чтение параметров
-	my $cpfl = shift; # $ENC_CP1252PCYR — CP1252+CYR; $ENC_TRANSLIT — транслит
-	my $dir_orig_en = shift;
-	my $dir_orig_ru = shift;
-	my $dir_save_ru = shift;
+	my ($cpfl, $dir1, $dir2) = @_;
 	# проверка параметров
-	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_CK2_SRCEN_DIR_NOT_FOUND}
-	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_CK2_SRCRU_DIR_NOT_FOUND}
-	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_CK2_DSTRU_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir1)) {return $FL_SRC_DIR_NOT_FOUND};
+	if (defined($dir2)) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_DST_DIR_NOT_FOUND}
+		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq
+		    decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
+			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
+		}
+	}
+	# работа
+	my ($reg_read, $reg_write);
+	if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {$reg_read = ':unix:perlio:encoding(utf-8)'; $reg_write = ':crlf:perlio:encoding(cp1252)'}
+	elsif ($cpfl == $DEC_CP1251 or $cpfl == $DEC_CP1252CYRCK2) {$reg_read = ':crlf:perlio:encoding(cp1252)'; $reg_write = ':unix:perlio:encoding(utf-8)'}
+	opendir(my $ch, encode('locale_fs', $dir1));
+	my @filenames = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $ch;
+	closedir($ch);
+	foreach my $filename (@filenames) {
+		open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
+		if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {
+			seek($filehandle, 3, 0);
+		}
+		my @strs;
+		while (my $str = <$filehandle>) {
+			chomp $str;
+			if ($str =~ m/^$/ or $str =~ m/^\#/ or $str =~ m/^;/) {next}
+			# деление строки
+			my ($tag, $txt) = split(/;/, $str, 3);
+			# обработка строки
+			if    ($cpfl == $ENC_CP1251) {
+				$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+			}
+			elsif ($cpfl == $ENC_CP1252CYRCK2) {
+				$txt = decode('cp1252', encode('cp1252cyrck2', $txt));
+			}
+			elsif ($cpfl == $ENC_TRANSLIT) {
+				&cyr_to_translit(\$txt);
+			}
+			elsif ($cpfl == $DEC_CP1251) {
+				$txt = decode('cp1252cp1251', encode('cp1252', $txt));
+			}
+			elsif ($cpfl == $DEC_CP1252CYRCK2) {
+				$txt = decode('cp1252cyrck2', encode('cp1252', $txt));
+			}
+			# сохранение строки
+			push(@strs, "$tag;$txt;x\n");
+		}
+		close $filehandle;
+		undef $filehandle;
+		# запись результатов обработки
+		unless (defined($dir2)) {$dir2 = $dir1}
+		open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename"));
+		print $filehandle @strs;
+		close $filehandle;
+	}
+	return 0;
+}
+# Build Lite Localisation for CK2
+sub l10n_ck2_lite {
+=head2 l10n_ck2_lite
+
+Функция для постройки Lite-локализации CK2.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+    $ENC_CP1251 # кодировать из UTF8 в CP1251
+    $ENC_CP1252CYRCK2 # кодировать из UTF8 в CP1252CYRCK2
+    $ENC_TRANSLIT # транслитерировать в CP1252
+
+=head4 Параметр №2
+
+Каталог с оригинальной английской локализацией.
+
+=head4 Параметр №3
+
+Каталог с русской локализацией.
+
+=head4 Параметр №4
+
+Каталог для сохранения результата.
+
+=cut
+	# чтение параметров
+	my ($cpfl, $dir_orig_en, $dir_orig_ru, $dir_save_ru) = @_;
+	# проверка параметров
+	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_SRCEN_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_SRCRU_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_DSTRU_DIR_NOT_FOUND}
 	if (decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) or
 	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru))) or
 	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru)))) {
@@ -386,8 +779,8 @@ sub ck2_l10n {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
 		seek($filehandle, 3, 0);
 		while (my $str = <$filehandle>) {
-			if ($str =~ m/^$/ or $str =~ m/^\#/ or $str =~ m/^;/) {next} # пропуск пустых строк, строк с комментариями и строк без тегов
 			chomp $str;
+			if ($str =~ m/^$/ or $str =~ m/^\#/ or $str =~ m/^;/) {next} # пропуск пустых строк, строк с комментариями и строк без тегов
 			my $tag = $str;
 			($tag, undef) = split(/;/, $tag, 2);
 #			$tag =~ s/;.*$//; # TODO: найти, что быстрее в извлечении полей — split или регулярные выражения?
@@ -403,15 +796,13 @@ sub ck2_l10n {
 	my @filenames_oe = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $coeh;
 	closedir($coeh);
 	foreach my $filename (@filenames_oe) {
-		open(my $filehandle, '<:raw', encode('locale_fs', "$dir_orig_en/$filename"));
+		open(my $filehandle, '<:crlf:encoding(cp1252)', encode('locale_fs', "$dir_orig_en/$filename"));
 		my $ff; # флаг содержания файла
 		my @strs; # хранилище строк
 		push(@strs, "#CODE;RUSSIAN;x\n");
 #		push(@strs, "#CODE;ENGLISH;x\n");
 		while (my $str = <$filehandle>) {
-			$str = decode('cp1252', $str);
 			$str =~ s/\x{FFFD}//g;
-			$str =~ s/\r$//;
 			chomp($str);
 			if ($str =~ m/^$/ or $str =~ m/^\#/ or $str =~ m/^;/) {next}
 			my $tag = $str;
@@ -433,13 +824,19 @@ sub ck2_l10n {
 			}
 			elsif (defined($loc_ru{$tag})) {
 				my $trru = $loc_ru{$tag};
-				if ($cpfl == $ENC_CP1252PCYR) {
-					&cyr_to_cp1252pcyr_ck2(\$trru);
+				if ($cpfl == $ENC_CP1251) {
+					$trru = decode('cp1252', encode('cp1252cp1251', $trru));
+				}
+				elsif ($cpfl == $ENC_CP1252CYRCK2) {
+					$trru = decode('cp1252', encode('cp1252cyrck2', $trru));
 				}
 				elsif ($cpfl == $ENC_TRANSLIT) {
 					&cyr_to_translit(\$trru);
 				}
 				$st = "$tag;$trru;x\n";
+			}
+			elsif (!defined($loc_ru{$tag})) {
+				$st = "$tag;$trns;x\n";
 			}
 			if (defined($st)) {
 				push(@strs, $st);
@@ -447,6 +844,7 @@ sub ck2_l10n {
 			$ff = 1; # установка флага содержания
 		}
 		close $filehandle;
+		undef $filehandle;
 		unless (defined($ff)) {next}
 		open($filehandle, '>:unix:crlf:encoding(cp1252)', encode('locale_fs', "$dir_save_ru/$filename"));
 		print $filehandle @strs;
@@ -455,15 +853,32 @@ sub ck2_l10n {
 	return 0;
 }
 # Print CK2 Tags
-sub ck2_l10n_tags {
+sub l10n_ck2_tags {
+=head2 l10n_ck2_tags
+
+Функция для вывода тэгов локализации CK2.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+Каталог с оригинальной английской локализацией.
+
+=head4 Параметр №2
+
+Каталог с русской локализацией.
+
+=head4 Параметр №3
+
+Каталог для сохранения результата.
+
+=cut
 	# чтение параметров
-	my $dir_orig_en = shift;
-	my $dir_orig_ru = shift;
-	my $dir_save_ru = shift;
+	my ($dir_orig_en, $dir_orig_ru, $dir_save_ru) = @_;
 	# проверка параметров
-	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_CK2_SRCEN_DIR_NOT_FOUND}
-	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_CK2_SRCRU_DIR_NOT_FOUND}
-	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_CK2_DSTRU_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_orig_en)) {return $FL_SRCEN_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_orig_ru)) {return $FL_SRCRU_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir_save_ru)) {return $FL_DSTRU_DIR_NOT_FOUND}
 	if (decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) or
 	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_ru))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru))) or
 	    decode('locale_fs', abs_path(encode('locale_fs', $dir_orig_en))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir_save_ru)))) {
@@ -490,6 +905,7 @@ sub ck2_l10n_tags {
 			$ff = 1;
 		}
 		close $filehandle;
+		undef $filehandle;
 		unless (defined($ff)) {next}
 		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename"));
 		print $filehandle @strs;
@@ -517,6 +933,7 @@ sub ck2_l10n_tags {
 			$ff = 1;
 		}
 		close $filehandle;
+		undef $filehandle;
 		unless (defined($ff)) {next}
 		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename"));
 		print $filehandle @strs;
@@ -525,16 +942,36 @@ sub ck2_l10n_tags {
 	return 0;
 }
 # Очистка и модификация карт шрифтов
-sub eu4ck2_font {
+sub font {
+=head2 font
+
+Функция для очистки и модификации карт шрифтов.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+    $ENC_NULL # только очистить
+    $ENC_CP1251 # обработка CP1251
+    $ENC_CP1252CYRCK2 # обработка CP1252CYRCK2
+    $ENC_CP1252CYREU4 # обработка CP1252CYREU4
+
+=head4 Параметр №2
+
+Каталог для обработки.
+
+=head4 Параметр №3
+
+Каталог сохранения.
+(Необязателен. При указании обработанные данные сохраняются в структуру файлов в указанном каталоге)
+
+=cut
 	# чтение параметров
-	my $cpfl = shift; # $ENC_NULL — не трогать; $ENC_FNT_EU4 — обработка CP1252+CYR-EU4; $ENC_FNT_CK2 — обработка CP1252+CYR-CK2; $ENC_CP1251 — обработка CP1251
-	my $c2fl = shift; # $FL_OVERWRITE — перезаписать; $FL_WRITEDOWN — сохранить в другое место
-	my $dir1 = shift; # каталог №1
-	my $dir2 = shift; # каталог №2
+	my ($cpfl, $dir1, $dir2) = @_;
 	# проверка параметров
-	unless (-d encode('locale_fs', $dir1)) {return $FL_FNT_SRC_DIR_NOT_FOUND}
-	if ($c2fl == $FL_WRITEDOWN) {
-		unless (-d encode('locale_fs', $dir2)) {return $FL_FNT_DST_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir1)) {return $FL_SRC_DIR_NOT_FOUND}
+	if (defined($dir2)) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_DST_DIR_NOT_FOUND}
 		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
 			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
 		}
@@ -572,7 +1009,7 @@ sub eu4ck2_font {
 				if ($str =~ m/^char/) {
 					my @str_id = split(" ", $str);
 					unless ($cpfl == $ENC_NULL) {#если КОДИРОВКА, то заменить номера символов
-						&id_to_cp1252pcyr(\$str_id[1], $cpfl);
+						&id_to(\$str_id[1], $cpfl);
 					}
 					delete($str_id[10]);
 					push(@strs, "@str_id\n"); next;
@@ -580,13 +1017,14 @@ sub eu4ck2_font {
 				if ($str =~ m/^kerning/) {
 					my @str_kerning = split(" ", $str);
 					unless ($cpfl == $ENC_NULL) {#если КОДИРОВКА, то заменить номера символов
-						&id_to_cp1252pcyr(\$str_kerning[1], $cpfl);
-						&id_to_cp1252pcyr(\$str_kerning[2], $cpfl);
+						&id_to(\$str_kerning[1], $cpfl);
+						&id_to(\$str_kerning[2], $cpfl);
 					}
 					push(@strs, "@str_kerning\n"); next;
 				}
 			}
 			close $filehandle;
+			undef $filehandle;
 			# сортировка
 			unless ($cpfl == $ENC_NULL) {#если КОДИРОВКА, то сортировать
 				my $kr;
@@ -598,43 +1036,56 @@ sub eu4ck2_font {
 				@strs[2..$kr] = sort {&srt($a, $b)} @strs[2..$kr];
 			}
 			# /сортировка
-			if ($c2fl == $FL_OVERWRITE) {
-				open($filehandle, '>:unix:crlf', encode('locale_fs', "$dir1/$filename"));
-				print $filehandle @strs;
-				close $filehandle;
-			}
-			elsif ($c2fl == $FL_WRITEDOWN) {
-				open($filehandle, '>:unix:crlf', encode('locale_fs', "$dir2/$filename"));
-				print $filehandle @strs;
-				close $filehandle;
-			}
+			# запись результатов обработки
+			unless (defined($dir2)) {$dir2 = $dir1}
+			open($filehandle, '>:unix:crlf', encode('locale_fs', "$dir2/$filename"));
+			print $filehandle @strs;
+			close $filehandle;
 		}
 		elsif ($filename =~ m/\.(tga|dds)$/) {
 			my $new_name = $filename;
 			$new_name =~ s/_0\.tga$/\.tga/;
 			$new_name =~ s/_0\.dds$/\.dds/;
-			if ($c2fl == $FL_OVERWRITE) {
+			if (defined($dir2)) {
+				copy(encode('locale_fs', "$dir1/$filename"), encode('locale_fs', "$dir2/$new_name"));
+			}
+			else {
 				if ($filename eq $new_name) {next}
 				rename(encode('locale_fs', "$dir1/$filename"), encode('locale_fs', "$dir1/$new_name"));
-			}
-			elsif ($c2fl == $FL_WRITEDOWN) {
-				copy(encode('locale_fs', "$dir1/$filename"), encode('locale_fs', "$dir2/$new_name"));
 			}
 		}
 	}
 	return 0;
 }
 # Конвертирование файлов локализации мода-сейва из CK2 в EU4
-sub ck2_to_eu4_modsave {
+sub modexport {
+=head2 modexport
+
+Функция для конвертирования файлов локализации мода-сейва из CK2 в EU4.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+    $ENC_CP1251 # локализация закодирована в CP1251
+    $ENC_CP1252CYREU4 # локализация закодирована в CP1252CYREU4
+
+=head4 Параметр №2
+
+Каталог для обработки.
+
+=head4 Параметр №3
+
+Каталог сохранения.
+(Необязателен. При указании обработанные данные сохраняются в структуру файлов в указанном каталоге)
+
+=cut
 	# чтение параметров
-	my $cpfl = shift; # $ENC_CP1251 — CP1251; $ENC_CP1252PCYR — CP1252+CYR
-	my $c2fl = shift; # $FL_OVERWRITE — произвести изменения в исходном каталоге; $FL_WRITEDOWN — сохранить в каталог №2
-	my $dir1 = shift; # исходный каталог
-	my $dir2 = shift; # каталог сохранения
+	my ($cpfl, $dir1, $dir2) = @_;
 	# проверка параметров
-	unless (-d encode('locale_fs', $dir1)) {return $FL_CNV_SRC_DIR_NOT_FOUND}
-	if ($c2fl == $FL_WRITEDOWN) {
-		unless (-d encode('locale_fs', $dir2)) {return $FL_CNV_DST_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir1)) {return $FL_SRC_DIR_NOT_FOUND}
+	if (defined($dir2)) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_DST_DIR_NOT_FOUND}
 		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
 			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
 		}
@@ -648,22 +1099,23 @@ sub ck2_to_eu4_modsave {
 		if ($filename =~ m/_l_french\.yml$/ or
 		    $filename =~ m/_l_german\.yml$/ or
 		    $filename =~ m/_l_spanish\.yml$/) {
-			if ($c2fl == $FL_OVERWRITE) {
+			unless (defined($dir2)) {
 				unlink encode('locale_fs', "$dir1/$filename");
 			}
 			next;
 		}
 		# удаление лишних файлов
-		if ($filename =~ m/converted_custom_countries/ or
-		    $filename =~ m/converted_custom_deities/ or
-		    $filename =~ m/converted_custom_ideas/ or
-		    $filename =~ m/converted_heresies/ or
-		    $filename =~ m/converted_misc/ or
-		    $filename =~ m/converted_religions/ or
-		    $filename =~ m/sunset_invasion_custom_countries/ or
-		    $filename =~ m/sunset_invasion_custom_ideas/ or
-		    $filename =~ m/sunset_invasion_custom_technology_groups/) {
-			if ($c2fl == $FL_OVERWRITE) {
+		if ($filename =~ m/^converted_custom_countries/ or
+		    $filename =~ m/^converted_custom_deities/ or
+		    $filename =~ m/^converted_custom_ideas/ or
+		    $filename =~ m/^converted_heresies/ or
+		    $filename =~ m/^converted_misc/ or
+		    $filename =~ m/^converted_religions/ or
+		    $filename =~ m/^new_converter_texts/ or
+		    $filename =~ m/^sunset_invasion_custom_countries/ or
+		    $filename =~ m/^sunset_invasion_custom_ideas/ or
+		    $filename =~ m/^sunset_invasion_custom_technology_groups/) {
+			unless (defined($dir2)) {
 				unlink encode('locale_fs', "$dir1/$filename");
 			}
 			next;
@@ -678,7 +1130,7 @@ sub ck2_to_eu4_modsave {
 			chomp $str;
 			# деление строки
 			my ($tag, $num, $txt, $cmm) = &yml_string($str);
-			# обработка строки ##TODO: проверить конвертацию всех поддерживаемых символов через DLC-конвертор
+			# обработка строки
 			$txt =~ y(‚ѓ„…†‡€‰Љ‹ЊЋ‘’“”•–—™љ›њћџ ЎўҐ¦Ё©Є«¬®Ї°±Ііґµ¶·ё№є»јѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя)
 			         (‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ);
 			if ($cpfl == $ENC_CP1251) {
@@ -689,7 +1141,7 @@ sub ck2_to_eu4_modsave {
 					$txt .= 'ñê';
 				}
 			}
-			elsif ($cpfl == $ENC_CP1252PCYR) {
+			elsif ($cpfl == $ENC_CP1252CYREU4) {
 				$txt =~ y/^/€/;
 				if ($filename =~ m/converted_cultures/) {
 					$txt =~ s/\x7f\x11$/a÷/;
@@ -699,63 +1151,85 @@ sub ck2_to_eu4_modsave {
 			push(@strs, " $tag:$num \"$txt\"\n");
 		}
 		close $filehandle;
+		undef $filehandle;
 		my $new_name = $filename;
 		$new_name =~ s/_l_english\.yml$/_l_russian\.yml/;
-		if ($c2fl == $FL_OVERWRITE) {
+		unless (defined($dir2)) {
 			rename(encode('locale_fs', "$dir1/$filename"), encode('locale_fs', "$dir1/$new_name"));
 		}
-		if ($c2fl == $FL_OVERWRITE) {
-			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir1/$new_name"));
-			print $filehandle @strs;
-			close $filehandle;
-		}
-		elsif ($c2fl == $FL_WRITEDOWN) {
-			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$new_name"));
-			print $filehandle @strs;
-			close $filehandle;
-		}
+		unless (defined($dir2)) {$dir2 = $dir1}
+		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$new_name"));
+		print $filehandle @strs;
+		close $filehandle;
 	}
 	return 0;
 }
-# Конвертирование файлов простого текста из UTF8 в CP1252+CYR
+# Конвертирование файлов простого текста из UTF8 в CP1252CYR
 sub plaintext {
+=head2 plaintext
+
+Функция для конвертирования файлов простого текста между UTF8 и кодировками Recodenc.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+    $ENC_CP1251 # кодировать из UTF8 в CP1251
+    $ENC_CP1252CYRCK2 # кодировать из UTF8 в CP1252CYRCK2
+    $ENC_CP1252CYREU4 # кодировать из UTF8 в CP1252CYREU4
+    $ENC_TRANSLIT # транслитерировать в рамках UTF8
+    $DEC_CP1251 # декодировать из CP1251 в UTF8
+    $DEC_CP1252CYRCK2 # декодировать из CP1252CYRCK2 в UTF8
+    $DEC_CP1252CYREU4 # декодировать из CP1252CYREU4 в UTF8
+
+=head4 Параметр №2
+
+Каталог для обработки.
+
+=head4 Параметр №3
+
+Каталог сохранения.
+(Необязателен. При указании обработанные данные сохраняются в структуру файлов в указанном каталоге)
+
+=cut
 	# чтение параметров
-	my $c2fl = shift; # $FL_OVERWRITE — произвести изменения в исходном каталоге; $FL_WRITEDOWN — сохранить в каталог №2
-	my $dir1 = shift; # исходный каталог
-	my $dir2 = shift; # каталог сохранения
+	my ($cpfl, $dir1, $dir2) = @_;
 	# проверка параметров
-	unless (-d encode('locale_fs', $dir1)) {return $FL_PTX_SRC_DIR_NOT_FOUND};
-	if ($c2fl == $FL_WRITEDOWN) {
-		unless (-d encode('locale_fs', $dir2)) {return $FL_PTX_DST_DIR_NOT_FOUND}
+	unless (-d encode('locale_fs', $dir1)) {return $FL_SRC_DIR_NOT_FOUND};
+	if (defined($dir2)) {
+		unless (-d encode('locale_fs', $dir2)) {return $FL_DST_DIR_NOT_FOUND}
 		if (decode('locale_fs', abs_path(encode('locale_fs', $dir1))) eq decode('locale_fs', abs_path(encode('locale_fs', $dir2)))) {
 			return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
 		}
 	};
 	# работа
+	my ($reg_read, $reg_write);
+	if    ($cpfl == $ENC_CP1251)       {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252cp1251)'}
+	elsif ($cpfl == $ENC_CP1252CYRCK2) {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252cyrck2)'}
+	elsif ($cpfl == $ENC_CP1252CYREU4) {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252cyreu4)'}
+	elsif ($cpfl == $ENC_TRANSLIT)     {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(utf-8)'}
+	elsif ($cpfl == $DEC_CP1251)       {$reg_read = ':encoding(cp1252cp1251)'; $reg_write = ':encoding(utf-8)'}
+	elsif ($cpfl == $DEC_CP1252CYRCK2) {$reg_read = ':encoding(cp1252cyrck2)'; $reg_write = ':encoding(utf-8)'}
+	elsif ($cpfl == $DEC_CP1252CYREU4) {$reg_read = ':encoding(cp1252cyreu4)'; $reg_write = ':encoding(utf-8)'}
 	opendir(my $ch, encode('locale_fs', $dir1));
 	my @filenames = grep { !m/^\.\.?$/ } map {decode('locale_fs', $_)} readdir $ch;
 	closedir($ch);
 	foreach my $filename (@filenames) {
 		unless (-f encode('locale_fs', "$dir1/$filename")) {next}
-		open(my $filehandle, '<:encoding(utf-8)', encode('locale_fs', "$dir1/$filename"));
-		seek($filehandle, 3, 0);
+		open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
+		if ($reg_read eq ':encoding(utf-8)') {seek($filehandle, 3, 0)}
 		my @strs;
+		if ($reg_write eq ':encoding(utf-8)') {push(@strs, "\x{FEFF}")}
 		while (my $str = <$filehandle>) {
-			chomp $str;
-			&cyr_to_cp1252pcyr_eu4(\$str);
-			$str = encode('cp1252', $str);
-			push(@strs, "$str\n");
+			if ($cpfl == $ENC_TRANSLIT) {&cyr_to_translit(\$str)}
+			push(@strs, "$str");
 		}
-		if ($c2fl == $FL_OVERWRITE) {
-			open($filehandle, '>:encoding(utf-8)', encode('locale_fs', "$dir1/$filename"));
-			print $filehandle @strs;
-			close $filehandle;
-		}
-		elsif ($c2fl == $FL_WRITEDOWN) {
-			open($filehandle, '>:encoding(utf-8)', encode('locale_fs', "$dir2/$filename"));
-			print $filehandle @strs;
-			close $filehandle;
-		}
+		close $filehandle;
+		undef $filehandle;
+		unless (defined($dir2)) {$dir2 = $dir1}
+		open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename"));
+		print $filehandle @strs;
+		close $filehandle;
 	}
 	return 0;
 }
@@ -800,81 +1274,59 @@ sub srt {
 }
 
 # ФУНКЦИИ ПРЕОБРАЗОВАНИЯ КОДИРОВОК
-# функция для преобразования кириллицы из UTF-8 в CP1251
-sub cyr_to_cp1251 {
-	my $str = shift; # ссылка на строку для преобразования
-	$$str =~ y(АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя)
-	          (ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ);
-}
-
-# функция для преобразования кириллицы из UTF-8 в CP1252+CYR
-sub cyr_to_cp1252pcyr_eu4 {
-	my $str = shift; # ссылка на строку для преобразования
-	$$str =~ s/…/.../g;
-	$$str =~ s/„/\\\"/g;
-	$$str =~ s/“/\\\"/g;
-	$$str =~ s/”/\\\"/g;
-	$$str =~ s/«/\\\"/g;
-	$$str =~ s/»/\\\"/g;
-	$$str =~ y/‚‹‘’–—› €ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/''''\-\-' /d;
-	$$str =~ y(АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя)
-	          (A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷);
-}
-sub cyr_to_cp1252pcyr_ck2 {
-	my $str = shift; # ссылка на строку для преобразования
-	$$str =~ s/…/.../g;
-	$$str =~ y/‚„‹‘’“”–—› «»^€ƒ†‡ˆ‰•˜™¢¥¦¨©ª¬®¯°±²³´µ¶·¸¹º¼½¾×÷/'"'''""\-\-' ""/d;
-	$$str =~ y(АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя)
-	          (A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷);
-}
-
 # функция для транслитерирования кириллицы
 sub cyr_to_translit {
-	my $str = shift; # ссылка на строку для преобразования
+=head2 cyr_to_translit
+
+Функция для транслитерирования кириллицы.
+
+=head3 Параметры
+
+=head4 Параметр №1
+
+Ссылка на строку для преобразования.
+
+=cut
+	my $str = shift; # №1
 	$$str =~ y(АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя)
 	          (ABVGDEËJZIYKLMNOPRSTUFHQCXÇ’ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä);
 }
 
-# функция для преобразования кириллицы из CP1251 в UTF-8
-sub cp1251_to_cyr {
-	my $str = shift; # ссылка на строку для преобразования
-	$$str =~ y(ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ)
-	          (АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя);
-}
+# функция для замены номеров символов в кодировке юникод на номера для других кодировок
+sub id_to {
+=head2 id_to
 
-# функция для преобразования кириллицы из CP1252+CYR в UTF-8
-#Данная функция не выполняет преобразование из CP1252+CYR, т. к. преобразование
-#в CP1252+CYR необратимо; она лишь позволяет прочитать закодированный ранее
-#текст.
-sub cp1252pcyr_to_cyr_eu4 {
-	my $str = shift; # ссылка на строку для преобразования
-	$$str =~ y(€‚ƒ„…†‡ˆ‰‹‘’“”•–—˜™›× ¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾÷)
-	          (БГДЖЗИЙЛПУФЦЧШЩЪЫЬЭЮЯбвгджзийклмнптуфцчшщъыьэюя);
-}
-sub cp1252pcyr_to_cyr_ck2 {
-	my $str = shift; # ссылка на строку для преобразования
-	$$str =~ y(^‚ƒ„…†‡ˆ‰‹‘’“”•–—˜™›× ¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾÷)
-	          (БГДЖЗИЙЛПУФЦЧШЩЪЫЬЭЮЯбвгджзийклмнптуфцчшщъыьэюя);
-}
+Функция для замены номеров символов в кодировке юникод на номера для других кодировок.
 
-# функция для замены номеров символов в кодировке юникод на номера для CP1252+CYR
-sub id_to_cp1252pcyr {
-	my $str = shift; # ссылка на строку для преобразования
-	my $reg = shift; # eu4 — CP1252+CYR-EU4; ck2 — CP1252+CYR-CK2; cp1251 — CP1251
+=head3 Параметры
+
+=head4 Параметр №1
+
+Ссылка на строку для преобразования.
+
+=head4 Параметр №2
+
+    $ENC_CP1252CYREU4 # заменить кодовые позиции Unicode на CP1252CYREU4
+    $ENC_CP1252CYRCK2 # заменить кодовые позиции Unicode на CP1252CYRCK2
+    $ENC_CP1251 # заменить кодовые позиции Unicode на CP1251
+
+=cut
+	my $str = shift; # №1
+	my $reg = shift; # №2
 	my @str = split(/=/, $$str, 2);
-	if    ($reg == $ENC_FNT_EU4) {
-		if (defined($cp_1252pcyr_eu4{$str[1]})) {
-			$str[1] = $cp_1252pcyr_eu4{$str[1]}
+	if    ($reg == $ENC_CP1252CYREU4) {
+		if (defined($cp1252cyreu4{$str[1]})) {
+			$str[1] = $cp1252cyreu4{$str[1]}
 		}
 	}
-	elsif ($reg == $ENC_FNT_CK2) {
-		if (defined($cp_1252pcyr_ck2{$str[1]})) {
-			$str[1] = $cp_1252pcyr_ck2{$str[1]}
+	elsif ($reg == $ENC_CP1252CYRCK2) {
+		if (defined($cp1252cyrck2{$str[1]})) {
+			$str[1] = $cp1252cyrck2{$str[1]}
 		}
 	}
 	elsif ($reg == $ENC_CP1251) {
-		if (defined($cp_1251{$str[1]})) {
-			$str[1] = $cp_1251{$str[1]}
+		if (defined($cp1251{$str[1]})) {
+			$str[1] = $cp1251{$str[1]}
 		}
 	}
 	$$str = "$str[0]=$str[1]";
