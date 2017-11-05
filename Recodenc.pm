@@ -330,7 +330,9 @@ sub l10n_eu4 {
 	closedir($ch);
 	foreach my $filename (@filenames) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir1/$filename"));
-		seek($filehandle, 3, 0); # отбрасывание трёх байт с начала файла (BOM)
+		my $sof; # отбрасывание BOM, если он есть
+		read($filehandle, $sof, 1);
+		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		my $fl = 0; # флаг нужности/ненужности обработки строк
 		my @strs; # объявление хранилища строк
 		push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
@@ -375,7 +377,7 @@ sub l10n_eu4 {
 		undef $filehandle;
 		# запись результатов обработки
 		unless (defined($dir2)) {$dir2 = $dir1}
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$filename"));
+		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$filename")) or die "Невозможно открыть файл: $!";
 		print $filehandle @strs;
 		close $filehandle;
 	}
@@ -425,7 +427,9 @@ sub l10n_eu4_lite {
 	closedir($ch);
 	foreach my $filename (@filenames) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
-		seek($filehandle, 3, 0);
+		my $sof; # отбрасывание BOM, если он есть
+		read($filehandle, $sof, 1);
+		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		my $fl = 0; # флаг нужности/ненужности обработки строк
 		my @strs;
 		push(@strs, "\x{FEFF}");
@@ -471,7 +475,9 @@ sub l10n_eu4_lite {
 	@filenames = ('prov_names_l_english.yml', 'prov_names_adj_l_english.yml');
 	foreach my $filename (@filenames) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', "$dir_orig_en/$filename");
-		seek($filehandle, 3, 0);
+		my $sof; # отбрасывание BOM, если он есть
+		read($filehandle, $sof, 1);
+		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		my @strs;
 		push(@strs, "\x{FEFF}");
 		while (my $str = <$filehandle>) {
@@ -552,7 +558,9 @@ sub l10n_eu4_tags {
 	mkdir(encode('locale_fs', "$dir_save_ru/ru"));
 	foreach my $filename (@filenames) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
-		seek($filehandle, 3, 0);
+		my $sof; # отбрасывание BOM, если он есть
+		read($filehandle, $sof, 1);
+		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		my @strs;
 		push(@strs, "\x{FEFF}");
 		while (my $str = <$filehandle>) {
@@ -581,7 +589,9 @@ sub l10n_eu4_tags {
 	mkdir(encode('locale_fs', "$dir_save_ru/en"));
 	foreach my $filename (@filenames) {
 		open(my $filehandle, '<:crlf:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_en/$filename"));
-		seek($filehandle, 3, 0);
+		my $sof; # отбрасывание BOM, если он есть
+		read($filehandle, $sof, 1);
+		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		my @strs;
 		push(@strs, "\x{FEFF}");
 		while (my $str = <$filehandle>) {
@@ -695,7 +705,9 @@ sub l10n_ck2 {
 	foreach my $filename (@filenames) {
 		open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
 		if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {
-			seek($filehandle, 3, 0);
+			my $sof; # отбрасывание BOM, если он есть
+			read($filehandle, $sof, 1);
+			unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		}
 		my @strs;
 		while (my $str = <$filehandle>) {
@@ -777,7 +789,9 @@ sub l10n_ck2_lite {
 	closedir($corh);
 	foreach my $filename (@filenames_or) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
-		seek($filehandle, 3, 0);
+		my $sof; # отбрасывание BOM, если он есть
+		read($filehandle, $sof, 1);
+		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		while (my $str = <$filehandle>) {
 			chomp $str;
 			if ($str =~ m/^$/ or $str =~ m/^\#/ or $str =~ m/^;/) {next} # пропуск пустых строк, строк с комментариями и строк без тегов
@@ -891,7 +905,9 @@ sub l10n_ck2_tags {
 	mkdir(encode('locale_fs', "$dir_save_ru/ru"));
 	foreach my $filename (@filenames_or) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
-		seek($filehandle, 3, 0);
+		my $sof; # отбрасывание BOM, если он есть
+		read($filehandle, $sof, 1);
+		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
 		my $ff;
 		my @strs;
 		push(@strs, "\x{FEFF}#CODE\n");
@@ -1217,7 +1233,11 @@ sub plaintext {
 	foreach my $filename (@filenames) {
 		unless (-f encode('locale_fs', "$dir1/$filename")) {next}
 		open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
-		if ($reg_read eq ':encoding(utf-8)') {seek($filehandle, 3, 0)}
+		if ($reg_read eq ':encoding(utf-8)') {
+			my $sof; # отбрасывание BOM, если он есть
+			read($filehandle, $sof, 1);
+			unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
+		}
 		my @strs;
 		if ($reg_write eq ':encoding(utf-8)') {push(@strs, "\x{FEFF}")}
 		while (my $str = <$filehandle>) {

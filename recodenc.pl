@@ -43,7 +43,7 @@ binmode(STDERR, ":encoding(console_out)");
 @ARGV = map {decode('locale', $_)} @ARGV;
 
 *PROGNAME = \'Recodenc';
-*VERSION  = \'0.6.0';
+*VERSION  = \'0.6.1';
 *ACTION_ENCODE = \1;
 *ACTION_DECODE = \2;
 *ACTION_TRANSLIT = \3;

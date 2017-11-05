@@ -81,7 +81,7 @@ binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
 
 *PROGNAME = \'Recodenc';
-*VERSION = \'0.6.0';
+*VERSION = \'0.6.1';
 
 # загрузка конфигурации
 my $conf_path_dir; # имя каталога файла конфигурации
