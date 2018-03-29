@@ -54,7 +54,7 @@ use utf8;
 use v5.18;
 use warnings;
 use integer;
-use vars qw($PROGNAME $VERSION);
+use vars qw($PROGNAME $VERSION $LABEL_PADDING);
 use IUP;
 use IUP::Button;
 use IUP::Constants qw(:basic :keys);
@@ -82,6 +82,7 @@ binmode(STDERR, ":encoding(console_out)");
 
 *PROGNAME = \'Recodenc';
 *VERSION = \'0.6.1';
+*LABEL_PADDING = \'3x3';
 
 # загрузка конфигурации
 my $conf_path_dir; # имя каталога файла конфигурации
@@ -154,7 +155,7 @@ my $cnv_text_save = IUP::Text->new(EXPAND => 'HORIZONTAL', VALUECHANGED_CB => su
 my $ptx_text_proc = IUP::Text->new(EXPAND => 'HORIZONTAL', VALUECHANGED_CB => sub{$config{ptx_cat1} = shift->GetAttribute('VALUE'); return IUP_DEFAULT});
 my $ptx_text_save = IUP::Text->new(EXPAND => 'HORIZONTAL', VALUECHANGED_CB => sub{$config{ptx_cat2} = shift->GetAttribute('VALUE'); return IUP_DEFAULT});
 # создание строки для вывода статуса
-my $status = IUP::Label->new(EXPAND => 'HORIZONTAL');
+my $status = IUP::Label->new(EXPAND => 'HORIZONTAL', PADDING => $LABEL_PADDING);
 # присвоение значениий флагам
 $eu4_togl->SetAttribute(VALUE => $config{eu4_c2});
 $ck2_togl->SetAttribute(VALUE => $config{ck2_c2});
@@ -192,8 +193,9 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 1,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Для обработки:'),
+						IUP::Label->new(TITLE => 'Для обработки:', PADDING => $LABEL_PADDING),
 						$eu4_text_proc,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($eu4_text_proc, \$config{eu4_cat1})}),
 						$eu4_togl,
@@ -226,14 +228,15 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 2,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Рус. лок.:'),
+						IUP::Label->new(TITLE => 'Рус. лок.:', PADDING => $LABEL_PADDING),
 						$eu4l_text_origru,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($eu4l_text_origru, \$config{eu4l_origru})}),
-						IUP::Label->new(TITLE => 'Анг. лок.:'),
+						IUP::Label->new(TITLE => 'Анг. лок.:', PADDING => $LABEL_PADDING),
 						$eu4l_text_origen,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($eu4l_text_origen, \$config{eu4l_origen})}),
-						IUP::Label->new(TITLE => 'Сохранить в:'),
+						IUP::Label->new(TITLE => 'Сохранить в:', PADDING => $LABEL_PADDING),
 						$eu4l_text_saveru,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($eu4l_text_saveru, \$config{eu4l_saveru})})
 					]
@@ -257,11 +260,12 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 1,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Каталог DLC:'),
+						IUP::Label->new(TITLE => 'Каталог DLC:', PADDING => $LABEL_PADDING),
 						$eu4d_text_dlc,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($eu4d_text_dlc, \$config{eu4d_dlc})}),
-						IUP::Label->new(TITLE => 'Каталог назначения:'),
+						IUP::Label->new(TITLE => 'Каталог назначения:', PADDING => $LABEL_PADDING),
 						$eu4d_text_dst,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($eu4d_text_dst, \$config{eu4d_dst})})
 					]
@@ -282,8 +286,9 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 1,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Для обработки:'),
+						IUP::Label->new(TITLE => 'Для обработки:', PADDING => $LABEL_PADDING),
 						$ck2_text_proc,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($ck2_text_proc, \$config{ck2_cat1})}),
 						$ck2_togl,
@@ -316,14 +321,15 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 2,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Рус. лок.:'),
+						IUP::Label->new(TITLE => 'Рус. лок.:', PADDING => $LABEL_PADDING),
 						$ck2l_text_origru,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($ck2l_text_origru, \$config{ck2l_origru})}),
-						IUP::Label->new(TITLE => 'Анг. лок.:'),
+						IUP::Label->new(TITLE => 'Анг. лок.:', PADDING => $LABEL_PADDING),
 						$ck2l_text_origen,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($ck2l_text_origen, \$config{ck2l_origen})}),
-						IUP::Label->new(TITLE => 'Сохранить в:'),
+						IUP::Label->new(TITLE => 'Сохранить в:', PADDING => $LABEL_PADDING),
 						$ck2l_text_saveru,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($ck2l_text_saveru, \$config{ck2l_saveru})})
 					]
@@ -347,8 +353,9 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 1,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Для обработки:'),
+						IUP::Label->new(TITLE => 'Для обработки:', PADDING => $LABEL_PADDING),
 						$fnt_text_proc,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($fnt_text_proc, \$config{fnt_cat1})}),
 						$fnt_togl,
@@ -375,8 +382,9 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 1,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Для обработки:'),
+						IUP::Label->new(TITLE => 'Для обработки:', PADDING => $LABEL_PADDING),
 						$cnv_text_proc,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($cnv_text_proc, \$config{cnv_cat1})}),
 						$cnv_togl,
@@ -401,8 +409,9 @@ my $tabs = IUP::Tabs->new(
 					SIZELIN => 1,
 					NUMDIV => 3,
 					ALIGNMENTLIN => 'ACENTER',
+					ALIGNMENTCOL0 => 'ARIGHT',
 					child => [
-						IUP::Label->new(TITLE => 'Для обработки:'),
+						IUP::Label->new(TITLE => 'Для обработки:', PADDING => $LABEL_PADDING),
 						$ptx_text_proc,
 						IUP::Button->new(TITLE => 'Выбрать каталог', ACTION => sub{&seldir($ptx_text_proc, \$config{ptx_cat1})}),
 						$ptx_togl,
@@ -720,7 +729,7 @@ sub win_unbusy {
 }
 
 sub action_shorthelp {
-my $label = IUP::Label->new(TITLE => <<'END');
+my $label = IUP::Label->new(TITLE => <<'END', PADDING => $LABEL_PADDING);
 Структура графического интерфейса программы:
 	вкладки определяют формат, с которым работаем
 	виджеты на вкладках — что с ними можно сделать
@@ -748,7 +757,7 @@ END
 
 sub action_translittable {
 # Показывает таблицу транслитерации
-	my $label = IUP::Label->new(TITLE => <<'END');
+	my $label = IUP::Label->new(TITLE => <<'END', PADDING => $LABEL_PADDING);
 а — Aa	я — Ää
 о — Oo	ё — Ëë
 у — Uu	ю — Üü

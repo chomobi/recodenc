@@ -1351,4 +1351,12 @@ sub id_to {
 	}
 	$$str = "$str[0]=$str[1]";
 }
+
+sub encodelf(;$) {
+	encode('locale_fs', $_[0]);
+}
+
+sub decodelf(;$) {
+	decode('locale_fs', $_[0]);
+}
 1;
