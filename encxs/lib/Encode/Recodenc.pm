@@ -1,7 +1,7 @@
 package Encode::Recodenc;
 ################################################################################
 # Recodenc
-# Copyright © 2016-2017 terqüéz <gz0@ro.ru>
+# Copyright © 2016-2018 terqüéz <gz0@ro.ru>
 #
 # This file is part of Recodenc.
 #

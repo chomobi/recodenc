@@ -1,6 +1,6 @@
 ################################################################################
 # Recodenc
-# Copyright © 2016-2017 terqüéz <gz0@ro.ru>
+# Copyright © 2016-2018 terqüéz <gz0@ro.ru>
 #
 # This file is part of Recodenc.
 #
@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
-<code_set_name> "cp1252cp1251"
+<code_set_name> "cp1252a"
 <mb_cur_min> 1
 <mb_cur_max> 1
 <subchar> \x3F

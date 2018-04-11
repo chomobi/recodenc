@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 ################################################################################
 # Recodenc
-# Copyright © 2016-2017 terqüéz <gz0@ro.ru>
+# Copyright © 2016-2018 terqüéz <gz0@ro.ru>
 #
 # This file is part of Recodenc.
 #
@@ -43,7 +43,7 @@ binmode(STDERR, ":encoding(console_out)");
 @ARGV = map {decode('locale', $_)} @ARGV;
 
 *PROGNAME = \'Recodenc';
-*VERSION  = \'0.6.1';
+*VERSION  = \'0.6.2';
 *ACTION_ENCODE = \1;
 *ACTION_DECODE = \2;
 *ACTION_TRANSLIT = \3;
@@ -311,7 +311,7 @@ print <<'EOT';
 каталогов файлы читаются из первого каталога и сохраняются во втором.
 Остальные каталоги отбрасываются.
 
-Copyright (C) 2016-2017 terquez <gz0@ro.ru>
+Copyright (C) 2016-2018 terquez <gz0@ro.ru>
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
@@ -321,7 +321,7 @@ EOT
 sub version {
 print <<"EOT";
 Recodenc $VERSION
-Copyright (C) 2016-2017 terquez <gz0\@ro.ru>
+Copyright (C) 2016-2018 terquez <gz0\@ro.ru>
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.

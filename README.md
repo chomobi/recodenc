@@ -292,6 +292,6 @@ S’exy je eçë êtih mägkih franquzskih bulok da vîpey caü.
 
 ## Лицензия
 
-Copyright © 2016-2017 terqüéz
+Copyright © 2016-2018 terqüéz
 
 Этот текст доступен на условиях лицензии [CC BY-NC-ND 4.0 Международная](https://creativecommons.org/licenses/by-nc-nd/4.0/). Программный код скрипта доступен на условиях GPLv3 или (по вашему выбору) более поздней версии.

@@ -1,7 +1,7 @@
 package Recodenc;
 ################################################################################
 # Recodenc
-# Copyright © 2016-2017 terqüéz <gz0@ro.ru>
+# Copyright © 2016-2018 terqüéz <gz0@ro.ru>
 #
 # This file is part of Recodenc.
 #
@@ -59,12 +59,13 @@ use vars qw(
 	);
 use parent qw(Exporter);
 use File::Copy;
+use File::Spec;
 use Cwd qw(abs_path);
 use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 use Encode qw(encode decode);
 use Encode::Locale;
 use Encode::Recodenc;
-@EXPORT_OK = qw(l10n_eu4 l10n_eu4_lite l10n_eu4_tags l10n_eu4_dlc l10n_ck2 l10n_ck2_lite l10n_ck2_tags font modexport plaintext);
+@EXPORT_OK = qw(l10n_eu4 l10n_eu4_lite l10n_eu4_tags l10n_eu4_dlc l10n_ck2 l10n_ck2_lite l10n_ck2_tags font modexport plaintext encodelf decodelf);
 
 *FL_SRC_DIR_NOT_FOUND = \1;
 *FL_DST_DIR_NOT_FOUND = \2;
@@ -288,7 +289,7 @@ my %cp1251 = (
 # ЭКСПОРТИРУЕМЫЕ ФУНКЦИИ
 ################################################################################
 # Encode Localisation for EU4
-sub l10n_eu4 {
+sub l10n_eu4 { # r
 =head2 l10n_eu4
 
 Функция для кодировки и декодировки локализации EU4.
@@ -325,66 +326,83 @@ sub l10n_eu4 {
 		}
 	}
 	# работа
-	opendir(my $ch, encode('locale_fs', $dir1));
-	my @filenames = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	my @filenames = grep { m/\.(?:yml|txt)$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
-		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir1/$filename"));
-		my $sof; # отбрасывание BOM, если он есть
-		read($filehandle, $sof, 1);
-		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
-		my $fl = 0; # флаг нужности/ненужности обработки строк
-		my @strs; # объявление хранилища строк
-		push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
-		while (my $str = <$filehandle>) {
-			chomp $str;
-			# запоминание и пропуск необрабатываемых строк
-			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
-			if ($str =~ m/^l_/) {
-				push(@strs, "$str\n");
-				if   ($str =~ m/^l_russian/) {$fl = 1}
-				else                         {$fl = 0}
-				next;
+		if ($filename =~ m/\.yml$/) {
+			open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir1/$filename"));
+			my $sof; # отбрасывание BOM, если он есть
+			read($filehandle, $sof, 1);
+			unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
+			my $fl = 0; # флаг нужности/ненужности обработки строк
+			my @strs; # объявление хранилища строк
+			push(@strs, "\x{FEFF}"); # добавление BOM в начало файла
+			while (my $str = <$filehandle>) {
+				chomp $str;
+				# запоминание и пропуск необрабатываемых строк
+				if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
+				if ($str =~ m/^l_/) {
+					push(@strs, "$str\n");
+					if   ($str =~ m/^l_russian/) {$fl = 1}
+					else                         {$fl = 0}
+					next;
+				}
+				if ($fl eq 0) {push(@strs, "$str\n"); next}
+				# деление строки
+				my ($tag, $num, $txt, $cmm) = &yml_string($str);
+				# обработка строки
+				if    ($cpfl == $ENC_CP1251) {
+					$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+				}
+				elsif ($cpfl == $ENC_CP1252CYREU4) {
+					$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
+				}
+				elsif ($cpfl == $ENC_TRANSLIT) {
+					&cyr_to_translit(\$txt);
+				}
+				elsif ($cpfl == $DEC_CP1251) {
+					$txt = decode('cp1252cp1251', encode('cp1252', $txt));
+				}
+				elsif ($cpfl == $DEC_CP1252CYREU4) {
+					$txt = decode('cp1252cyreu4', encode('cp1252', $txt));
+				}
+				# сохранение строки
+				if (length($cmm) > 0) {
+					push(@strs, " $tag:$num \"$txt\" #$cmm\n");
+				}
+				else {
+					push(@strs, " $tag:$num \"$txt\"\n");
+				}
 			}
-			if ($fl eq 0) {push(@strs, "$str\n"); next}
-			# деление строки
-			my ($tag, $num, $txt, $cmm) = &yml_string($str);
-			# обработка строки
-			if    ($cpfl == $ENC_CP1251) {
-				$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+			close $filehandle;
+			undef $filehandle;
+			# запись результатов обработки
+			unless (defined($dir2)) {$dir2 = $dir1}
+			unless (open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$filename"))) {
+				my @catalogues = File::Spec->splitdir($filename);
+				@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+				if (@catalogues) {
+					catcr($dir2, @catalogues);
+				}
+				open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$filename")) or die "Невозможно открыть файл: $!";
 			}
-			elsif ($cpfl == $ENC_CP1252CYREU4) {
-				$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
-			}
-			elsif ($cpfl == $ENC_TRANSLIT) {
-				&cyr_to_translit(\$txt);
-			}
-			elsif ($cpfl == $DEC_CP1251) {
-				$txt = decode('cp1252cp1251', encode('cp1252', $txt));
-			}
-			elsif ($cpfl == $DEC_CP1252CYREU4) {
-				$txt = decode('cp1252cyreu4', encode('cp1252', $txt));
-			}
-			# сохранение строки
-			if (length($cmm) > 0) {
-				push(@strs, " $tag:$num \"$txt\" #$cmm\n");
-			}
-			else {
-				push(@strs, " $tag:$num \"$txt\"\n");
+			print $filehandle @strs;
+			close $filehandle;
+		}
+		elsif ($filename =~ m/\.txt$/) {
+			if (defined($dir2)) {
+				my @catalogues = File::Spec->splitdir($filename);
+				@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+				if (@catalogues) {
+					catcr($dir2, @catalogues);
+				}
+				copy(encodelf("$dir1/$filename"), encodelf("$dir2/$filename"))
 			}
 		}
-		close $filehandle;
-		undef $filehandle;
-		# запись результатов обработки
-		unless (defined($dir2)) {$dir2 = $dir1}
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$filename")) or die "Невозможно открыть файл: $!";
-		print $filehandle @strs;
-		close $filehandle;
 	}
 	return 0;
 }
 # Build Lite Localisation for EU4
-sub l10n_eu4_lite {
+sub l10n_eu4_lite { # r
 =head2 l10n_eu4_lite
 
 Функция для постройки Lite-локализации EU4.
@@ -422,59 +440,74 @@ sub l10n_eu4_lite {
 		return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
 	}
 	# работа
-	opendir(my $ch, encode('locale_fs', $dir_orig_ru));
-	my @filenames = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	my @filenames = grep { m/\.(?:yml|txt)$/ } flwc($dir_orig_ru);
 	foreach my $filename (@filenames) {
-		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
-		my $sof; # отбрасывание BOM, если он есть
-		read($filehandle, $sof, 1);
-		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
-		my $fl = 0; # флаг нужности/ненужности обработки строк
-		my @strs;
-		push(@strs, "\x{FEFF}");
-		while (my $str = <$filehandle>) {
-			chomp $str;
-			# запоминание и пропуск необрабатываемых строк
-			if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
-			if ($str =~ m/^l_/) {
-				push(@strs, "$str\n");
-				if   ($str =~ m/^l_russian/) {$fl = 1}
-				else                         {$fl = 0}
-				next;
+		if ($filename =~ m/\.yml$/) {
+			open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
+			my $sof; # отбрасывание BOM, если он есть
+			read($filehandle, $sof, 1);
+			unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
+			my $fl = 0; # флаг нужности/ненужности обработки строк
+			my @strs;
+			push(@strs, "\x{FEFF}");
+			while (my $str = <$filehandle>) {
+				chomp $str;
+				# запоминание и пропуск необрабатываемых строк
+				if ($str =~ m/^\#/ or $str =~ m/^ \#/ or $str =~ m/^$/ or $str =~ m/^ $/) {push(@strs, "$str\n"); next}
+				if ($str =~ m/^l_/) {
+					push(@strs, "$str\n");
+					if   ($str =~ m/^l_russian/) {$fl = 1}
+					else                         {$fl = 0}
+					next;
+				}
+				if ($fl eq 0) {push(@strs, "$str\n"); next}
+				# деление строки
+				my ($tag, $num, $txt, $cmm) = &yml_string($str);
+				# обработка строки
+				if    ($cpfl == $ENC_CP1251) {
+					$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+				}
+				elsif ($cpfl == $ENC_CP1252CYREU4) {
+					$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
+				}
+				elsif ($cpfl == $ENC_TRANSLIT) {
+					&cyr_to_translit(\$txt);
+				}
+				# сохранение строки
+				if (length($cmm) > 0) {
+					push(@strs, " $tag:$num \"$txt\" #$cmm\n");
+				}
+				else {
+					push(@strs, " $tag:$num \"$txt\"\n");
+				}
 			}
-			if ($fl eq 0) {push(@strs, "$str\n"); next}
-			# деление строки
-			my ($tag, $num, $txt, $cmm) = &yml_string($str);
-			# обработка строки
-			if    ($cpfl == $ENC_CP1251) {
-				$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+			close $filehandle;
+			undef $filehandle;
+			# запись результатов обработки
+			unless (open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/$filename"))) {
+				my @catalogues = File::Spec->splitdir($filename);
+				@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+				if (@catalogues) {
+					catcr($dir_save_ru, @catalogues);
+				}
+				open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/$filename")) or die "Невозможно открыть файл: $!";
 			}
-			elsif ($cpfl == $ENC_CP1252CYREU4) {
-				$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
-			}
-			elsif ($cpfl == $ENC_TRANSLIT) {
-				&cyr_to_translit(\$txt);
-			}
-			# сохранение строки
-			if (length($cmm) > 0) {
-				push(@strs, " $tag:$num \"$txt\" #$cmm\n");
-			}
-			else {
-				push(@strs, " $tag:$num \"$txt\"\n");
-			}
+			print $filehandle @strs;
+			close $filehandle;
 		}
-		close $filehandle;
-		undef $filehandle;
-		# запись результатов обработки
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/$filename"));
-		print $filehandle @strs;
-		close $filehandle;
+		elsif ($filename =~ m/\.txt$/) {
+			my @catalogues = File::Spec->splitdir($filename);
+			@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+			if (@catalogues) {
+				catcr($dir_save_ru, @catalogues);
+			}
+			copy(encodelf("$dir_orig_ru/$filename"), encodelf("$dir_save_ru/$filename"))
+		}
 	}
 	undef @filenames;
 	@filenames = ('prov_names_l_english.yml', 'prov_names_adj_l_english.yml');
 	foreach my $filename (@filenames) {
-		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', "$dir_orig_en/$filename");
+		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encodelf("$dir_orig_en/$filename"));
 		my $sof; # отбрасывание BOM, если он есть
 		read($filehandle, $sof, 1);
 		unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
@@ -515,7 +548,7 @@ sub l10n_eu4_lite {
 	return 0;
 }
 # Print EU4 Tags
-sub l10n_eu4_tags {
+sub l10n_eu4_tags { # r
 =head2 l10n_eu4_tags
 
 Функция для вывода тэгов локализации EU4.
@@ -552,9 +585,7 @@ sub l10n_eu4_tags {
 	undef @par;
 	# работа
 	# русская локализация
-	opendir(my $ch, encode('locale_fs', $dir_orig_ru));
-	my @filenames = grep { m/\.yml$/ && $_ ne 'languages.yml' } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	my @filenames = grep { m/\.yml$/ && $_ ne 'languages.yml' } flwc($dir_orig_ru);
 	mkdir(encode('locale_fs', "$dir_save_ru/ru"));
 	foreach my $filename (@filenames) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
@@ -576,16 +607,20 @@ sub l10n_eu4_tags {
 		undef $filehandle;
 		# запись результатов обработки
 		$filename =~ s/_l_russian//;
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename"));
+		unless (open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename"))) {
+			my @catalogues = File::Spec->splitdir($filename);
+			@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+			if (@catalogues) {
+				catcr("$dir_save_ru/ru", @catalogues);
+			}
+			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename")) or die "Невозможно открыть файл: $!";
+		}
 		print $filehandle @strs;
 		close $filehandle;
 	}
-	undef $ch;
 	undef @filenames;
 	# английская локализация из /localisation/
-	opendir($ch, encode('locale_fs', $dir_orig_en));
-	@filenames = grep { m/_l_english\.yml$/ && $_ ne 'languages.yml' } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	@filenames = grep { m/_l_english\.yml$/ && $_ ne 'languages.yml' } flwc($dir_orig_en);
 	mkdir(encode('locale_fs', "$dir_save_ru/en"));
 	foreach my $filename (@filenames) {
 		open(my $filehandle, '<:crlf:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_en/$filename"));
@@ -607,11 +642,17 @@ sub l10n_eu4_tags {
 		undef $filehandle;
 		# запись результатов обработки
 		$filename =~ s/_l_english//;
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename"));
+		unless (open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename"))) {
+			my @catalogues = File::Spec->splitdir($filename);
+			@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+			if (@catalogues) {
+				catcr("$dir_save_ru/en", @catalogues);
+			}
+			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename")) or die "Невозможно открыть файл: $!";
+		}
 		print $filehandle @strs;
 		close $filehandle;
 	}
-	undef $ch;
 	undef @filenames;
 	return 0;
 }
@@ -659,7 +700,7 @@ sub l10n_eu4_dlc {
 	return 0;
 }
 # Encode Localisation for CK2
-sub l10n_ck2 {
+sub l10n_ck2 { # r
 =head2 l10n_ck2
 
 Функция для кодировки и декодировки локализации CK2.
@@ -699,48 +740,65 @@ sub l10n_ck2 {
 	my ($reg_read, $reg_write);
 	if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {$reg_read = ':unix:perlio:encoding(utf-8)'; $reg_write = ':crlf:perlio:encoding(cp1252)'}
 	elsif ($cpfl == $DEC_CP1251 or $cpfl == $DEC_CP1252CYRCK2) {$reg_read = ':crlf:perlio:encoding(cp1252)'; $reg_write = ':unix:perlio:encoding(utf-8)'}
-	opendir(my $ch, encode('locale_fs', $dir1));
-	my @filenames = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	my @filenames = grep { m/\.(?:csv|txt)$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
-		open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
-		if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {
-			my $sof; # отбрасывание BOM, если он есть
-			read($filehandle, $sof, 1);
-			unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
+		if ($filename =~ m/\.csv$/) {
+			open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
+			if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {
+				my $sof; # отбрасывание BOM, если он есть
+				read($filehandle, $sof, 1);
+				unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
+			}
+			my @strs;
+			while (my $str = <$filehandle>) {
+				chomp $str;
+				if ($str =~ m/^$/ or $str =~ m/^\#/ or $str =~ m/^;/) {next}
+				# деление строки
+				my ($tag, $txt) = split(/;/, $str, 3);
+				# обработка строки
+				if    ($cpfl == $ENC_CP1251) {
+					$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+				}
+				elsif ($cpfl == $ENC_CP1252CYRCK2) {
+					$txt = decode('cp1252', encode('cp1252cyrck2', $txt));
+				}
+				elsif ($cpfl == $ENC_TRANSLIT) {
+					&cyr_to_translit(\$txt);
+				}
+				elsif ($cpfl == $DEC_CP1251) {
+					$txt = decode('cp1252cp1251', encode('cp1252', $txt));
+				}
+				elsif ($cpfl == $DEC_CP1252CYRCK2) {
+					$txt = decode('cp1252cyrck2', encode('cp1252', $txt));
+				}
+				# сохранение строки
+				push(@strs, "$tag;$txt;x\n");
+			}
+			close $filehandle;
+			undef $filehandle;
+			# запись результатов обработки
+			unless (defined($dir2)) {$dir2 = $dir1}
+			unless (open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename"))) {
+				my @catalogues = File::Spec->splitdir($filename);
+				@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+				if (@catalogues) {
+					catcr($dir2, @catalogues);
+				}
+				open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename")) or die "Невозможно открыть файл: $!";
+			}
+			print $filehandle @strs;
+			close $filehandle;
 		}
-		my @strs;
-		while (my $str = <$filehandle>) {
-			chomp $str;
-			if ($str =~ m/^$/ or $str =~ m/^\#/ or $str =~ m/^;/) {next}
-			# деление строки
-			my ($tag, $txt) = split(/;/, $str, 3);
-			# обработка строки
-			if    ($cpfl == $ENC_CP1251) {
-				$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+		elsif ($filename =~ m/\.txt$/) {
+			if (defined($dir2)) {
+				my @catalogues = File::Spec->splitdir($filename);
+				@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+				if (@catalogues) {
+					catcr($dir2, @catalogues);
+				}
+				copy(encodelf("$dir1/$filename"), encodelf("$dir2/$filename"))
 			}
-			elsif ($cpfl == $ENC_CP1252CYRCK2) {
-				$txt = decode('cp1252', encode('cp1252cyrck2', $txt));
-			}
-			elsif ($cpfl == $ENC_TRANSLIT) {
-				&cyr_to_translit(\$txt);
-			}
-			elsif ($cpfl == $DEC_CP1251) {
-				$txt = decode('cp1252cp1251', encode('cp1252', $txt));
-			}
-			elsif ($cpfl == $DEC_CP1252CYRCK2) {
-				$txt = decode('cp1252cyrck2', encode('cp1252', $txt));
-			}
-			# сохранение строки
-			push(@strs, "$tag;$txt;x\n");
 		}
-		close $filehandle;
-		undef $filehandle;
-		# запись результатов обработки
-		unless (defined($dir2)) {$dir2 = $dir1}
-		open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename"));
-		print $filehandle @strs;
-		close $filehandle;
 	}
 	return 0;
 }
@@ -867,7 +925,7 @@ sub l10n_ck2_lite {
 	return 0;
 }
 # Print CK2 Tags
-sub l10n_ck2_tags {
+sub l10n_ck2_tags { # r
 =head2 l10n_ck2_tags
 
 Функция для вывода тэгов локализации CK2.
@@ -899,9 +957,7 @@ sub l10n_ck2_tags {
 		return $FL_SRC_AND_DST_DIR_ARE_THE_SAME
 	}
 	# работа
-	opendir(my $corh, encode('locale_fs', $dir_orig_ru));
-	my @filenames_or = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $corh;
-	closedir($corh);
+	my @filenames_or = grep { m/\.csv$/ } flwc($dir_orig_ru);
 	mkdir(encode('locale_fs', "$dir_save_ru/ru"));
 	foreach my $filename (@filenames_or) {
 		open(my $filehandle, '<:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_orig_ru/$filename"));
@@ -923,13 +979,18 @@ sub l10n_ck2_tags {
 		close $filehandle;
 		undef $filehandle;
 		unless (defined($ff)) {next}
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename"));
+		unless (open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename"))) {
+			my @catalogues = File::Spec->splitdir($filename);
+			@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+			if (@catalogues) {
+				catcr("$dir_save_ru/ru", @catalogues);
+			}
+			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/ru/$filename")) or die "Невозможно открыть файл: $!";
+		}
 		print $filehandle @strs;
 		close $filehandle;
 	}
-	opendir(my $coeh, encode('locale_fs', $dir_orig_en));
-	my @filenames_oe = grep { m/\.csv$/ } map {decode('locale_fs', $_)} readdir $coeh;
-	closedir($coeh);
+	my @filenames_oe = grep { m/\.csv$/ } flwc($dir_orig_en);
 	mkdir(encode('locale_fs', "$dir_save_ru/en"));
 	foreach my $filename (@filenames_oe) {
 		open(my $filehandle, '<:raw', encode('locale_fs', "$dir_orig_en/$filename"));
@@ -951,14 +1012,21 @@ sub l10n_ck2_tags {
 		close $filehandle;
 		undef $filehandle;
 		unless (defined($ff)) {next}
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename"));
+		unless (open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename"))) {
+			my @catalogues = File::Spec->splitdir($filename);
+			@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+			if (@catalogues) {
+				catcr("$dir_save_ru/en", @catalogues);
+			}
+			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir_save_ru/en/$filename")) or die "Невозможно открыть файл: $!";
+		}
 		print $filehandle @strs;
 		close $filehandle;
 	}
 	return 0;
 }
 # Очистка и модификация карт шрифтов
-sub font {
+sub font { # r
 =head2 font
 
 Функция для очистки и модификации карт шрифтов.
@@ -993,9 +1061,7 @@ sub font {
 		}
 	}
 	# работа
-	opendir(my $ch, encode('locale_fs', $dir1));
-	my @filenames = grep { m/(\.fnt|\.tga|\.dds)$/ } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	my @filenames = grep { m/(\.fnt|\.tga|\.dds)$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
 		if ($filename =~ m/\.fnt$/) {
 			open(my $filehandle, '<:unix:crlf', encode('locale_fs', "$dir1/$filename"));
@@ -1054,7 +1120,14 @@ sub font {
 			# /сортировка
 			# запись результатов обработки
 			unless (defined($dir2)) {$dir2 = $dir1}
-			open($filehandle, '>:unix:crlf', encode('locale_fs', "$dir2/$filename"));
+			unless (open($filehandle, '>:unix:crlf', encode('locale_fs', "$dir2/$filename"))) {
+				my @catalogues = File::Spec->splitdir($filename);
+				@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+				if (@catalogues) {
+					catcr($dir2, @catalogues);
+				}
+				open($filehandle, '>:unix:crlf', encode('locale_fs', "$dir2/$filename")) or die "Невозможно открыть файл: $!";
+			}
 			print $filehandle @strs;
 			close $filehandle;
 		}
@@ -1063,6 +1136,11 @@ sub font {
 			$new_name =~ s/_0\.tga$/\.tga/;
 			$new_name =~ s/_0\.dds$/\.dds/;
 			if (defined($dir2)) {
+				my @catalogues = File::Spec->splitdir($filename);
+				@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+				if (@catalogues) {
+					catcr($dir2, @catalogues);
+				}
 				copy(encode('locale_fs', "$dir1/$filename"), encode('locale_fs', "$dir2/$new_name"));
 			}
 			else {
@@ -1074,7 +1152,7 @@ sub font {
 	return 0;
 }
 # Конвертирование файлов локализации мода-сейва из CK2 в EU4
-sub modexport {
+sub modexport { # r
 =head2 modexport
 
 Функция для конвертирования файлов локализации мода-сейва из CK2 в EU4.
@@ -1107,9 +1185,7 @@ sub modexport {
 		}
 	};
 	# работа
-	opendir(my $ch, encode('locale_fs', $dir1));
-	my @filenames = grep { m/\.yml$/ } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	my @filenames = grep { m/\.yml$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
 		# удаление файлов локализации других языков
 		if ($filename =~ m/_l_french\.yml$/ or
@@ -1121,16 +1197,16 @@ sub modexport {
 			next;
 		}
 		# удаление лишних файлов
-		if ($filename =~ m/^converted_custom_countries/ or
-		    $filename =~ m/^converted_custom_deities/ or
-		    $filename =~ m/^converted_custom_ideas/ or
-		    $filename =~ m/^converted_heresies/ or
-		    $filename =~ m/^converted_misc/ or
-		    $filename =~ m/^converted_religions/ or
-		    $filename =~ m/^new_converter_texts/ or
-		    $filename =~ m/^sunset_invasion_custom_countries/ or
-		    $filename =~ m/^sunset_invasion_custom_ideas/ or
-		    $filename =~ m/^sunset_invasion_custom_technology_groups/) {
+		if ($filename =~ m/converted_custom_countries_l_english\.yml$/ or
+		    $filename =~ m/converted_custom_deities_l_english\.yml$/ or
+		    $filename =~ m/converted_custom_ideas_l_english\.yml$/ or
+		    $filename =~ m/converted_heresies_l_english\.yml$/ or
+		    $filename =~ m/converted_misc_l_english\.yml$/ or
+		    $filename =~ m/converted_religions_l_english\.yml$/ or
+		    $filename =~ m/new_converter_texts_l_english\.yml$/ or
+		    $filename =~ m/sunset_invasion_custom_countries_l_english\.yml$/ or
+		    $filename =~ m/sunset_invasion_custom_ideas_l_english\.yml$/ or
+		    $filename =~ m/sunset_invasion_custom_technology_groups_l_english\.yml$/) {
 			unless (defined($dir2)) {
 				unlink encode('locale_fs', "$dir1/$filename");
 			}
@@ -1174,14 +1250,21 @@ sub modexport {
 			rename(encode('locale_fs', "$dir1/$filename"), encode('locale_fs', "$dir1/$new_name"));
 		}
 		unless (defined($dir2)) {$dir2 = $dir1}
-		open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$new_name"));
+		unless (open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$new_name"))) {
+			my @catalogues = File::Spec->splitdir($new_name);
+			@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+			if (@catalogues) {
+				catcr($dir2, @catalogues);
+			}
+			open($filehandle, '>:unix:perlio:encoding(utf-8)', encode('locale_fs', "$dir2/$new_name")) or die "Невозможно открыть файл: $!";
+		}
 		print $filehandle @strs;
 		close $filehandle;
 	}
 	return 0;
 }
 # Конвертирование файлов простого текста из UTF8 в CP1252CYR
-sub plaintext {
+sub plaintext { # r
 =head2 plaintext
 
 Функция для конвертирования файлов простого текста между UTF8 и кодировками Recodenc.
@@ -1227,9 +1310,7 @@ sub plaintext {
 	elsif ($cpfl == $DEC_CP1251)       {$reg_read = ':encoding(cp1252cp1251)'; $reg_write = ':encoding(utf-8)'}
 	elsif ($cpfl == $DEC_CP1252CYRCK2) {$reg_read = ':encoding(cp1252cyrck2)'; $reg_write = ':encoding(utf-8)'}
 	elsif ($cpfl == $DEC_CP1252CYREU4) {$reg_read = ':encoding(cp1252cyreu4)'; $reg_write = ':encoding(utf-8)'}
-	opendir(my $ch, encode('locale_fs', $dir1));
-	my @filenames = grep { !m/^\.\.?$/ } map {decode('locale_fs', $_)} readdir $ch;
-	closedir($ch);
+	my @filenames = grep { !m/^\.\.?$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
 		unless (-f encode('locale_fs', "$dir1/$filename")) {next}
 		open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
@@ -1248,6 +1329,14 @@ sub plaintext {
 		undef $filehandle;
 		unless (defined($dir2)) {$dir2 = $dir1}
 		open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename"));
+		unless (open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename"))) {
+			my @catalogues = File::Spec->splitdir($filename);
+			@catalogues = @catalogues[0..(scalar(@catalogues) - 2)];
+			if (@catalogues) {
+				catcr($dir2, @catalogues);
+			}
+			open($filehandle, ">$reg_write", encode('locale_fs', "$dir2/$filename")) or die "Невозможно открыть файл: $!";
+		}
 		print $filehandle @strs;
 		close $filehandle;
 	}
@@ -1291,6 +1380,32 @@ sub srt {
 	if ($a > $b) {return 1}
 	elsif ($a < $b) {return -1}
 	elsif ($a == $b) {return 0}
+}
+
+sub sl {
+	my ($a, $b) = @_;
+	if ($a eq '') {return $b}
+	else {return File::Spec->catdir($a, $b)}
+}
+sub flwc { # file list with catalogues
+	my @dirs = @_;
+	my $dir = File::Spec->catdir(@dirs);
+	my $pref = File::Spec->catdir(@dirs[1..(scalar(@dirs) - 1)]);
+	my @filenames;
+	opendir(my $ch, encodelf($dir));
+	#say "$dirs[0]; $dir; $pref; $_";
+	map {if (-d "$dir/$_") {push(@filenames, flwc(@dirs, $_))} else {push(@filenames, sl($pref, $_))}} grep { !m/^\.\.?$/ } map {decodelf($_)} readdir $ch;
+	return @filenames;
+}
+sub catcr { # catalogues creator
+	my @dirs = @_;
+	my $dir = File::Spec->catdir(@dirs);
+	unless (-d encodelf($dir)) {
+		if (@dirs[1..(scalar(@dirs) - 2)]) {
+			catcr(@dirs[0..(scalar(@dirs) - 2)])
+		}
+		mkdir(encodelf($dir)) or die "Не удалось создать каталог $dir\n";
+	}
 }
 
 # ФУНКЦИИ ПРЕОБРАЗОВАНИЯ КОДИРОВОК

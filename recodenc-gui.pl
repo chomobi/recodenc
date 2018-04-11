@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 ################################################################################
 # Recodenc
-# Copyright © 2016-2017 terqüéz <gz0@ro.ru>
+# Copyright © 2016-2018 terqüéz <gz0@ro.ru>
 #
 # This file is part of Recodenc.
 #
@@ -81,7 +81,7 @@ binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
 
 *PROGNAME = \'Recodenc';
-*VERSION = \'0.6.1';
+*VERSION = \'0.6.2';
 *LABEL_PADDING = \'3x3';
 
 # загрузка конфигурации
@@ -800,7 +800,7 @@ sub action_about {
 		VALUE => <<"END");
 Recodenc
 Версия: $VERSION
-Copyright © 2016-2017 terqüéz <gz0\@ro.ru>
+Copyright © 2016-2018 terqüéz <gz0\@ro.ru>
 Ресурсы для разработчиков и справка:
 https://github.com/chomobi/recodenc
 
