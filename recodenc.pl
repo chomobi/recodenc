@@ -43,7 +43,7 @@ binmode(STDERR, ":encoding(console_out)");
 @ARGV = map {decode('locale', $_)} @ARGV;
 
 *PROGNAME = \'Recodenc';
-*VERSION  = \'0.6.2';
+*VERSION  = \'0.6.3';
 *ACTION_ENCODE = \1;
 *ACTION_DECODE = \2;
 *ACTION_TRANSLIT = \3;
@@ -117,14 +117,14 @@ sub det_enc {
 	my $gam = shift; # игра: eu4 — EU4, ck2 — CK2
 	if    ($actn == $ACTION_ENCODE) {
 		if    ($encoding eq 'cp1251') {
-			return $Recodenc::ENC_CP1251;
+			return $Recodenc::ENC_CP1252A;
 		}
 		elsif ($encoding eq 'cp1252cyreu4') {
 			if ($gam eq 'ck2') {
 				die "Задана неверная локализация кодировки CP1252CYR.\n";
 			}
 			else {
-				return $Recodenc::ENC_CP1252CYREU4;
+				return $Recodenc::ENC_CP1252B;
 			}
 		}
 		elsif ($encoding eq 'cp1252cyrck2') {
@@ -132,15 +132,15 @@ sub det_enc {
 				die "Задана неверная локализация кодировки CP1252CYR.\n";
 			}
 			else {
-				return $Recodenc::ENC_CP1252CYRCK2;
+				return $Recodenc::ENC_CP1252C;
 			}
 		}
 		elsif ($encoding eq 'cp1252cyr') {
 			if    ($gam eq 'eu4') {
-				return $Recodenc::ENC_CP1252CYREU4;
+				return $Recodenc::ENC_CP1252B;
 			}
 			elsif ($gam eq 'ck2') {
-				return $Recodenc::ENC_CP1252CYRCK2;
+				return $Recodenc::ENC_CP1252C;
 			}
 			else {
 				die "CP1252CYR без указания движка игры в недопустимом месте.\n";
@@ -152,14 +152,14 @@ sub det_enc {
 	}
 	elsif ($actn == $ACTION_DECODE) {
 		if    ($encoding eq 'cp1251') {
-			return $Recodenc::DEC_CP1251;
+			return $Recodenc::DEC_CP1252A;
 		}
 		elsif ($encoding eq 'cp1252cyreu4') {
 			if ($gam eq 'ck2') {
 				die "Задана неверная локализация кодировки CP1252CYR.\n";
 			}
 			else {
-				return $Recodenc::DEC_CP1252CYREU4;
+				return $Recodenc::DEC_CP1252B;
 			}
 		}
 		elsif ($encoding eq 'cp1252cyrck2') {
@@ -167,15 +167,15 @@ sub det_enc {
 				die "Задана неверная локализация кодировки CP1252CYR.\n";
 			}
 			else {
-				return $Recodenc::DEC_CP1252CYRCK2;
+				return $Recodenc::DEC_CP1252C;
 			}
 		}
 		elsif ($encoding eq 'cp1252cyr') {
 			if    ($gam eq 'eu4') {
-				return $Recodenc::DEC_CP1252CYREU4;
+				return $Recodenc::DEC_CP1252B;
 			}
 			elsif ($gam eq 'ck2') {
-				return $Recodenc::DEC_CP1252CYRCK2;
+				return $Recodenc::DEC_CP1252C;
 			}
 			else {
 				die "CP1252CYR без указания движка игры в недопустимом месте.\n";

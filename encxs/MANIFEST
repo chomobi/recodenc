@@ -6,6 +6,6 @@ NEWS
 lib/Encode/Recodenc.pm
 t/00_compile.t
 t/10_encode_recodenc.t
-ucm/cp1252cp1251.ucm
-ucm/cp1252cyrck2.ucm
-ucm/cp1252cyreu4.ucm
+ucm/cp1252a.ucm
+ucm/cp1252b.ucm
+ucm/cp1252c.ucm

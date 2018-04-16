@@ -24,11 +24,11 @@ package Recodenc;
 
 =head1 НАЗВАНИЕ
 
-Recodenc — преобразование текстовых файлов и файлов специального формата между UTF8 и кодировками Recodenc (CP1252CYREU4, CP1252CYRCK2, CP1252CP1251)
+Recodenc — преобразование текстовых файлов и файлов специального формата между UTF8 и кодировками Recodenc (CP1252A, CP1252B, CP1252C)
 
 =head1 СИНТАКСИС
 
-    my $flag = l10n_eu4($Recodenc::ENC_CP1252CYREU4, $dir1, $dir2);
+    my $flag = l10n_eu4($Recodenc::ENC_CP1252B, $dir1, $dir2);
     if    ($flag == $Recodenc::FL_SRC_DIR_NOT_FOUND) {die 'Каталог с исходными данными не найден!'}
     elsif ($flag == $Recodenc::FL_DST_DIR_NOT_FOUND) {die 'Каталог для сохранения не найден!'}
     elsif ($flag == $Recodenc::FL_SRC_AND_DST_DIR_ARE_THE_SAME) {die 'Каталог с исходными данными и каталог назначения совпадают!'}
@@ -49,13 +49,13 @@ use vars qw(
 	$FL_DSTRU_DIR_NOT_FOUND
 	$FL_SRC_AND_DST_DIR_ARE_THE_SAME
 	$ENC_NULL
-	$ENC_CP1251
-	$ENC_CP1252CYREU4
-	$ENC_CP1252CYRCK2
+	$ENC_CP1252A
+	$ENC_CP1252B
+	$ENC_CP1252C
 	$ENC_TRANSLIT
-	$DEC_CP1251
-	$DEC_CP1252CYREU4
-	$DEC_CP1252CYRCK2
+	$DEC_CP1252A
+	$DEC_CP1252B
+	$DEC_CP1252C
 	);
 use parent qw(Exporter);
 use File::Copy;
@@ -74,138 +74,23 @@ use Encode::Recodenc;
 *FL_DSTRU_DIR_NOT_FOUND = \5;
 *FL_SRC_AND_DST_DIR_ARE_THE_SAME = \6;
 *ENC_NULL = \0;
-*ENC_CP1251 = \1;
-*ENC_CP1252CYREU4 = \2;
-*ENC_CP1252CYRCK2 = \3;
+*ENC_CP1252A = \1;
+*ENC_CP1252B = \2;
+*ENC_CP1252C = \3;
 *ENC_TRANSLIT = \4;
-*DEC_CP1251 = \5;
-*DEC_CP1252CYREU4 = \6;
-*DEC_CP1252CYRCK2 = \7;
+*DEC_CP1252A = \5;
+*DEC_CP1252B = \6;
+*DEC_CP1252C = \7;
 
 # Примечания к константам:
 # - FL_* — одно пространство имён
 # - ENC_* и DEC_* — одно пространтсво имён
-# - ENC_FNT_* — кусок непересекающегося с ENC_* пространства имён
 
 ################################################################################
 # КОД ДЛЯ ВЫПОЛНЕНИЯ ПЕРЕД ВЫЗОВАМИ ФУНКЦИЙ
 ################################################################################
 # Объявление кодировок для FNT
-my %cp1252cyreu4 = (
-	352 => '138',
-	353 => '154',
-	338 => '140',
-	339 => '156',
-	381 => '142',
-	382 => '158',
-	376 => '159',
-	1041 => '128',
-	1043 => '130',
-	1044 => '131',
-	1046 => '132',
-	1047 => '133',
-	1048 => '134',
-	1049 => '135',
-	1051 => '136',
-	1055 => '137',
-	1059 => '139',
-	1060 => '145',
-	1062 => '146',
-	1063 => '147',
-	1064 => '148',
-	1065 => '149',
-	1066 => '150',
-	1067 => '151',
-	1068 => '152',
-	1069 => '153',
-	1070 => '155',
-	1073 => '160',
-	1074 => '162',
-	1075 => '165',
-	1076 => '166',
-	1078 => '168',
-	1079 => '169',
-	1080 => '170',
-	1081 => '171',
-	1082 => '172',
-	1083 => '174',
-	1084 => '175',
-	1085 => '176',
-	1087 => '177',
-	1090 => '178',
-	1091 => '179',
-	1092 => '180',
-	1094 => '181',
-	1095 => '182',
-	1096 => '183',
-	1097 => '184',
-	1098 => '185',
-	1099 => '186',
-	1100 => '187',
-	1101 => '188',
-	1102 => '190',
-	1071 => '215',
-	1103 => '247'
-);
-
-my %cp1252cyrck2 = (
-	352 => '138',
-	353 => '154',
-	338 => '140',
-	339 => '156',
-	381 => '142',
-	382 => '158',
-	376 => '159',
-	1041 => '94',
-	1043 => '130',
-	1044 => '131',
-	1046 => '132',
-	1047 => '133',
-	1048 => '134',
-	1049 => '135',
-	1051 => '136',
-	1055 => '137',
-	1059 => '139',
-	1060 => '145',
-	1062 => '146',
-	1063 => '147',
-	1064 => '148',
-	1065 => '149',
-	1066 => '150',
-	1067 => '151',
-	1068 => '152',
-	1069 => '153',
-	1070 => '155',
-	1073 => '160',
-	1074 => '162',
-	1075 => '165',
-	1076 => '166',
-	1078 => '168',
-	1079 => '169',
-	1080 => '170',
-	1081 => '171',
-	1082 => '172',
-	1083 => '174',
-	1084 => '175',
-	1085 => '176',
-	1087 => '177',
-	1090 => '178',
-	1091 => '179',
-	1092 => '180',
-	1094 => '181',
-	1095 => '182',
-	1096 => '183',
-	1097 => '184',
-	1098 => '185',
-	1099 => '186',
-	1100 => '187',
-	1101 => '188',
-	1102 => '190',
-	1071 => '215',
-	1103 => '247'
-);
-
-my %cp1251 = (
+my %cp1252a = (
 	8218 => '130',
 	8222 => '132',
 	8230 => '133',
@@ -285,6 +170,120 @@ my %cp1251 = (
 	1103 => '255'
 );
 
+my %cp1252b = (
+	352 => '138',
+	353 => '154',
+	338 => '140',
+	339 => '156',
+	381 => '142',
+	382 => '158',
+	376 => '159',
+	1041 => '128',
+	1043 => '130',
+	1044 => '131',
+	1046 => '132',
+	1047 => '133',
+	1048 => '134',
+	1049 => '135',
+	1051 => '136',
+	1055 => '137',
+	1059 => '139',
+	1060 => '145',
+	1062 => '146',
+	1063 => '147',
+	1064 => '148',
+	1065 => '149',
+	1066 => '150',
+	1067 => '151',
+	1068 => '152',
+	1069 => '153',
+	1070 => '155',
+	1073 => '160',
+	1074 => '162',
+	1075 => '165',
+	1076 => '166',
+	1078 => '168',
+	1079 => '169',
+	1080 => '170',
+	1081 => '171',
+	1082 => '172',
+	1083 => '174',
+	1084 => '175',
+	1085 => '176',
+	1087 => '177',
+	1090 => '178',
+	1091 => '179',
+	1092 => '180',
+	1094 => '181',
+	1095 => '182',
+	1096 => '183',
+	1097 => '184',
+	1098 => '185',
+	1099 => '186',
+	1100 => '187',
+	1101 => '188',
+	1102 => '190',
+	1071 => '215',
+	1103 => '247'
+);
+
+my %cp1252c = (
+	352 => '138',
+	353 => '154',
+	338 => '140',
+	339 => '156',
+	381 => '142',
+	382 => '158',
+	376 => '159',
+	1041 => '94',
+	1043 => '130',
+	1044 => '131',
+	1046 => '132',
+	1047 => '133',
+	1048 => '134',
+	1049 => '135',
+	1051 => '136',
+	1055 => '137',
+	1059 => '139',
+	1060 => '145',
+	1062 => '146',
+	1063 => '147',
+	1064 => '148',
+	1065 => '149',
+	1066 => '150',
+	1067 => '151',
+	1068 => '152',
+	1069 => '153',
+	1070 => '155',
+	1073 => '160',
+	1074 => '162',
+	1075 => '165',
+	1076 => '166',
+	1078 => '168',
+	1079 => '169',
+	1080 => '170',
+	1081 => '171',
+	1082 => '172',
+	1083 => '174',
+	1084 => '175',
+	1085 => '176',
+	1087 => '177',
+	1090 => '178',
+	1091 => '179',
+	1092 => '180',
+	1094 => '181',
+	1095 => '182',
+	1096 => '183',
+	1097 => '184',
+	1098 => '185',
+	1099 => '186',
+	1100 => '187',
+	1101 => '188',
+	1102 => '190',
+	1071 => '215',
+	1103 => '247'
+);
+
 ################################################################################
 # ЭКСПОРТИРУЕМЫЕ ФУНКЦИИ
 ################################################################################
@@ -298,11 +297,11 @@ sub l10n_eu4 { # r
 
 =head4 Параметр №1
 
-    $ENC_CP1251 # кодировать из UTF8 в CP1251
-    $ENC_CP1252CYREU4 # кодировать из UTF8 в CP1252CYREU4
+    $ENC_CP1252A # кодировать из UTF8 в CP1252A
+    $ENC_CP1252B # кодировать из UTF8 в CP1252B
     $ENC_TRANSLIT # транслитерировать в рамках UTF8
-    $DEC_CP1251 # декодировать из CP1251 в UTF8
-    $DEC_CP1252CYREU4 # декодировать из CP1252CYREU4 в UTF8
+    $DEC_CP1252A # декодировать из CP1252A в UTF8
+    $DEC_CP1252B # декодировать из CP1252B в UTF8
 
 =head4 Параметр №2
 
@@ -350,23 +349,23 @@ sub l10n_eu4 { # r
 				# деление строки
 				my ($tag, $num, $txt, $cmm) = &yml_string($str);
 				# обработка строки
-				if    ($cpfl == $ENC_CP1251) {
-					$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+				if    ($cpfl == $ENC_CP1252A) {
+					$txt = decode('cp1252', encode('cp1252a', $txt));
 				}
-				elsif ($cpfl == $ENC_CP1252CYREU4) {
-					$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
+				elsif ($cpfl == $ENC_CP1252B) {
+					$txt = decode('cp1252', encode('cp1252b', $txt));
 				}
 				elsif ($cpfl == $ENC_TRANSLIT) {
 					&cyr_to_translit(\$txt);
 				}
-				elsif ($cpfl == $DEC_CP1251) {
-					$txt = decode('cp1252cp1251', encode('cp1252', $txt));
+				elsif ($cpfl == $DEC_CP1252A) {
+					$txt = decode('cp1252a', encode('cp1252', $txt));
 				}
-				elsif ($cpfl == $DEC_CP1252CYREU4) {
-					$txt = decode('cp1252cyreu4', encode('cp1252', $txt));
+				elsif ($cpfl == $DEC_CP1252B) {
+					$txt = decode('cp1252b', encode('cp1252', $txt));
 				}
 				# сохранение строки
-				if (length($cmm) > 0) {
+				if (defined($cmm)) {
 					push(@strs, " $tag:$num \"$txt\" #$cmm\n");
 				}
 				else {
@@ -411,8 +410,8 @@ sub l10n_eu4_lite { # r
 
 =head4 Параметр №1
 
-    $ENC_CP1251 # кодировать из UTF8 в CP1251
-    $ENC_CP1252CYREU4 # кодировать из UTF8 в CP1252CYREU4
+    $ENC_CP1252A # кодировать из UTF8 в CP1252A
+    $ENC_CP1252B # кодировать из UTF8 в CP1252B
     $ENC_TRANSLIT # транслитерировать в рамках UTF8
 
 =head4 Параметр №2
@@ -464,17 +463,17 @@ sub l10n_eu4_lite { # r
 				# деление строки
 				my ($tag, $num, $txt, $cmm) = &yml_string($str);
 				# обработка строки
-				if    ($cpfl == $ENC_CP1251) {
-					$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+				if    ($cpfl == $ENC_CP1252A) {
+					$txt = decode('cp1252', encode('cp1252a', $txt));
 				}
-				elsif ($cpfl == $ENC_CP1252CYREU4) {
-					$txt = decode('cp1252', encode('cp1252cyreu4', $txt));
+				elsif ($cpfl == $ENC_CP1252B) {
+					$txt = decode('cp1252', encode('cp1252b', $txt));
 				}
 				elsif ($cpfl == $ENC_TRANSLIT) {
 					&cyr_to_translit(\$txt);
 				}
 				# сохранение строки
-				if (length($cmm) > 0) {
+				if (defined($cmm)) {
 					push(@strs, " $tag:$num \"$txt\" #$cmm\n");
 				}
 				else {
@@ -521,14 +520,14 @@ sub l10n_eu4_lite { # r
 				push(@strs, "$str\n");
 				next;
 			}
-			if ($cpfl == $ENC_CP1251) {
+			if ($cpfl == $ENC_CP1252A) {
 				# деление строки
 				my ($tag, $num, $txt, $cmm) = &yml_string($str);
 				# обработка строки
 				$txt =~ y(ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ)
 				         (AAAAAAACEEEEIIIIDNOOOOOOUUUUYTsaaaaaaaceeeeiiiidnoooooouuuuyty);
 				# сохранение строки
-				if (length($cmm) > 0) {
+				if (defined($cmm)) {
 					push(@strs, " $tag:$num \"$txt\" #$cmm\n");
 				}
 				else {
@@ -709,11 +708,11 @@ sub l10n_ck2 { # r
 
 =head4 Параметр №1
 
-    $ENC_CP1251 # кодировать из UTF8 в CP1251
-    $ENC_CP1252CYRCK2 # кодировать из UTF8 в CP1252CYRCK2
+    $ENC_CP1252A # кодировать из UTF8 в CP1252A
+    $ENC_CP1252C # кодировать из UTF8 в CP1252C
     $ENC_TRANSLIT # транслитерировать в CP1252
-    $DEC_CP1251 # декодировать из CP1251 в UTF8
-    $DEC_CP1252CYRCK2 # декодировать из CP1252CYRCK2 в UTF8
+    $DEC_CP1252A # декодировать из CP1252A в UTF8
+    $DEC_CP1252C # декодировать из CP1252C в UTF8
 
 =head4 Параметр №2
 
@@ -738,13 +737,13 @@ sub l10n_ck2 { # r
 	}
 	# работа
 	my ($reg_read, $reg_write);
-	if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {$reg_read = ':unix:perlio:encoding(utf-8)'; $reg_write = ':crlf:perlio:encoding(cp1252)'}
-	elsif ($cpfl == $DEC_CP1251 or $cpfl == $DEC_CP1252CYRCK2) {$reg_read = ':crlf:perlio:encoding(cp1252)'; $reg_write = ':unix:perlio:encoding(utf-8)'}
+	if ($cpfl == $ENC_CP1252A or $cpfl == $ENC_CP1252C or $cpfl == $ENC_TRANSLIT) {$reg_read = ':unix:perlio:encoding(utf-8)'; $reg_write = ':crlf:perlio:encoding(cp1252)'}
+	elsif ($cpfl == $DEC_CP1252A or $cpfl == $DEC_CP1252C) {$reg_read = ':crlf:perlio:encoding(cp1252)'; $reg_write = ':unix:perlio:encoding(utf-8)'}
 	my @filenames = grep { m/\.(?:csv|txt)$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
 		if ($filename =~ m/\.csv$/) {
 			open(my $filehandle, "<$reg_read", encode('locale_fs', "$dir1/$filename"));
-			if ($cpfl == $ENC_CP1251 or $cpfl == $ENC_CP1252CYRCK2 or $cpfl == $ENC_TRANSLIT) {
+			if ($cpfl == $ENC_CP1252A or $cpfl == $ENC_CP1252C or $cpfl == $ENC_TRANSLIT) {
 				my $sof; # отбрасывание BOM, если он есть
 				read($filehandle, $sof, 1);
 				unless ($sof eq "\x{FEFF}") {seek($filehandle, 0, 0)}
@@ -756,20 +755,20 @@ sub l10n_ck2 { # r
 				# деление строки
 				my ($tag, $txt) = split(/;/, $str, 3);
 				# обработка строки
-				if    ($cpfl == $ENC_CP1251) {
-					$txt = decode('cp1252', encode('cp1252cp1251', $txt));
+				if    ($cpfl == $ENC_CP1252A) {
+					$txt = decode('cp1252', encode('cp1252a', $txt));
 				}
-				elsif ($cpfl == $ENC_CP1252CYRCK2) {
-					$txt = decode('cp1252', encode('cp1252cyrck2', $txt));
+				elsif ($cpfl == $ENC_CP1252C) {
+					$txt = decode('cp1252', encode('cp1252c', $txt));
 				}
 				elsif ($cpfl == $ENC_TRANSLIT) {
 					&cyr_to_translit(\$txt);
 				}
-				elsif ($cpfl == $DEC_CP1251) {
-					$txt = decode('cp1252cp1251', encode('cp1252', $txt));
+				elsif ($cpfl == $DEC_CP1252A) {
+					$txt = decode('cp1252a', encode('cp1252', $txt));
 				}
-				elsif ($cpfl == $DEC_CP1252CYRCK2) {
-					$txt = decode('cp1252cyrck2', encode('cp1252', $txt));
+				elsif ($cpfl == $DEC_CP1252C) {
+					$txt = decode('cp1252c', encode('cp1252', $txt));
 				}
 				# сохранение строки
 				push(@strs, "$tag;$txt;x\n");
@@ -812,8 +811,8 @@ sub l10n_ck2_lite {
 
 =head4 Параметр №1
 
-    $ENC_CP1251 # кодировать из UTF8 в CP1251
-    $ENC_CP1252CYRCK2 # кодировать из UTF8 в CP1252CYRCK2
+    $ENC_CP1252A # кодировать из UTF8 в CP1252A
+    $ENC_CP1252C # кодировать из UTF8 в CP1252C
     $ENC_TRANSLIT # транслитерировать в CP1252
 
 =head4 Параметр №2
@@ -896,11 +895,11 @@ sub l10n_ck2_lite {
 			}
 			elsif (defined($loc_ru{$tag})) {
 				my $trru = $loc_ru{$tag};
-				if ($cpfl == $ENC_CP1251) {
-					$trru = decode('cp1252', encode('cp1252cp1251', $trru));
+				if ($cpfl == $ENC_CP1252A) {
+					$trru = decode('cp1252', encode('cp1252a', $trru));
 				}
-				elsif ($cpfl == $ENC_CP1252CYRCK2) {
-					$trru = decode('cp1252', encode('cp1252cyrck2', $trru));
+				elsif ($cpfl == $ENC_CP1252C) {
+					$trru = decode('cp1252', encode('cp1252c', $trru));
 				}
 				elsif ($cpfl == $ENC_TRANSLIT) {
 					&cyr_to_translit(\$trru);
@@ -1036,9 +1035,9 @@ sub font { # r
 =head4 Параметр №1
 
     $ENC_NULL # только очистить
-    $ENC_CP1251 # обработка CP1251
-    $ENC_CP1252CYRCK2 # обработка CP1252CYRCK2
-    $ENC_CP1252CYREU4 # обработка CP1252CYREU4
+    $ENC_CP1252A # обработка CP1252A
+    $ENC_CP1252B # обработка CP1252B
+    $ENC_CP1252C # обработка CP1252C
 
 =head4 Параметр №2
 
@@ -1061,7 +1060,7 @@ sub font { # r
 		}
 	}
 	# работа
-	my @filenames = grep { m/(\.fnt|\.tga|\.dds)$/ } flwc($dir1);
+	my @filenames = grep { m/(?:\.fnt|\.tga|\.dds)$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
 		if ($filename =~ m/\.fnt$/) {
 			open(my $filehandle, '<:unix:crlf', encode('locale_fs', "$dir1/$filename"));
@@ -1131,7 +1130,7 @@ sub font { # r
 			print $filehandle @strs;
 			close $filehandle;
 		}
-		elsif ($filename =~ m/\.(tga|dds)$/) {
+		elsif ($filename =~ m/\.(?:tga|dds)$/) {
 			my $new_name = $filename;
 			$new_name =~ s/_0\.tga$/\.tga/;
 			$new_name =~ s/_0\.dds$/\.dds/;
@@ -1161,8 +1160,8 @@ sub modexport { # r
 
 =head4 Параметр №1
 
-    $ENC_CP1251 # локализация закодирована в CP1251
-    $ENC_CP1252CYREU4 # локализация закодирована в CP1252CYREU4
+    $ENC_CP1252A # локализация закодирована в CP1251
+    $ENC_CP1252B # локализация закодирована в CP1252B
 
 =head4 Параметр №2
 
@@ -1225,7 +1224,7 @@ sub modexport { # r
 			# обработка строки
 			$txt =~ y(‚ѓ„…†‡€‰Љ‹ЊЋ‘’“”•–—™љ›њћџ ЎўҐ¦Ё©Є«¬®Ї°±Ііґµ¶·ё№є»јѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя)
 			         (‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ);
-			if ($cpfl == $ENC_CP1251) {
+			if ($cpfl == $ENC_CP1252A) {
 				if ($filename =~ m/converted_cultures/) {
 					$txt =~ s/\x7f\x11$/àÿ/;
 				}
@@ -1233,7 +1232,7 @@ sub modexport { # r
 					$txt .= 'ñê';
 				}
 			}
-			elsif ($cpfl == $ENC_CP1252CYREU4) {
+			elsif ($cpfl == $ENC_CP1252B) {
 				$txt =~ y/^/€/;
 				if ($filename =~ m/converted_cultures/) {
 					$txt =~ s/\x7f\x11$/a÷/;
@@ -1263,7 +1262,7 @@ sub modexport { # r
 	}
 	return 0;
 }
-# Конвертирование файлов простого текста из UTF8 в CP1252CYR
+# Конвертирование файлов простого текста из UTF8 в CP1252A/B/C
 sub plaintext { # r
 =head2 plaintext
 
@@ -1273,13 +1272,14 @@ sub plaintext { # r
 
 =head4 Параметр №1
 
-    $ENC_CP1251 # кодировать из UTF8 в CP1251
-    $ENC_CP1252CYRCK2 # кодировать из UTF8 в CP1252CYRCK2
-    $ENC_CP1252CYREU4 # кодировать из UTF8 в CP1252CYREU4
+    $ENC_CP1252A # кодировать из UTF8 в CP1252A
+    $ENC_CP1252B # кодировать из UTF8 в CP1252B
+    $ENC_CP1252C # кодировать из UTF8 в CP1252C
     $ENC_TRANSLIT # транслитерировать в рамках UTF8
-    $DEC_CP1251 # декодировать из CP1251 в UTF8
-    $DEC_CP1252CYRCK2 # декодировать из CP1252CYRCK2 в UTF8
-    $DEC_CP1252CYREU4 # декодировать из CP1252CYREU4 в UTF8
+    $DEC_CP1252A # декодировать из CP1252A в UTF8
+    $DEC_CP1252B # декодировать из CP1252B в UTF8
+    $DEC_CP1252C # декодировать из CP1252C в UTF8
+
 
 =head4 Параметр №2
 
@@ -1303,13 +1303,13 @@ sub plaintext { # r
 	};
 	# работа
 	my ($reg_read, $reg_write);
-	if    ($cpfl == $ENC_CP1251)       {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252cp1251)'}
-	elsif ($cpfl == $ENC_CP1252CYRCK2) {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252cyrck2)'}
-	elsif ($cpfl == $ENC_CP1252CYREU4) {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252cyreu4)'}
-	elsif ($cpfl == $ENC_TRANSLIT)     {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(utf-8)'}
-	elsif ($cpfl == $DEC_CP1251)       {$reg_read = ':encoding(cp1252cp1251)'; $reg_write = ':encoding(utf-8)'}
-	elsif ($cpfl == $DEC_CP1252CYRCK2) {$reg_read = ':encoding(cp1252cyrck2)'; $reg_write = ':encoding(utf-8)'}
-	elsif ($cpfl == $DEC_CP1252CYREU4) {$reg_read = ':encoding(cp1252cyreu4)'; $reg_write = ':encoding(utf-8)'}
+	if    ($cpfl == $ENC_CP1252A)  {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252a)'}
+	elsif ($cpfl == $ENC_CP1252C)  {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252c)'}
+	elsif ($cpfl == $ENC_CP1252B)  {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(cp1252b)'}
+	elsif ($cpfl == $ENC_TRANSLIT) {$reg_read = ':encoding(utf-8)'; $reg_write = ':encoding(utf-8)'}
+	elsif ($cpfl == $DEC_CP1252A)  {$reg_read = ':encoding(cp1252a)'; $reg_write = ':encoding(utf-8)'}
+	elsif ($cpfl == $DEC_CP1252C)  {$reg_read = ':encoding(cp1252c)'; $reg_write = ':encoding(utf-8)'}
+	elsif ($cpfl == $DEC_CP1252B)  {$reg_read = ':encoding(cp1252b)'; $reg_write = ':encoding(utf-8)'}
 	my @filenames = grep { !m/^\.\.?$/ } flwc($dir1);
 	foreach my $filename (@filenames) {
 		unless (-f encode('locale_fs', "$dir1/$filename")) {next}
@@ -1348,23 +1348,7 @@ sub plaintext { # r
 # функция разбора правильной YAML-подобной строки файла локализации EU4
 sub yml_string {
 	my $str = shift;
-	$str =~ s/^\h//; # удаление начального пробела
-	$str =~ m/^[^:]+:[0-9]*/p; # нахождение тэга и номера
-	$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
-	my ($tag, $num) = split (/:/, ${^MATCH}); # приравнивание тэга и номера соответствующим переменным
-	$str =~ s/^\h+//; # удаление пробела между номером и текстом
-	$str =~ s/\\\"/\0/g; # замена экранированных кавычек на нулевые символы
-	$str =~ m/^"[^"]*"/p; # нахождение текста //в некоторых строках нет локализации
-	$str = ${^POSTMATCH}; # выбрасывание из строки найденной информации
-	my $txt = ${^MATCH}; # приравнивание текста соответствующей переменной
-	$txt =~ s/^"//; # удаление кавычки в начале текста
-	$txt =~ s/"$//; # удаление кавычки в конце текста
-	$txt =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в тексте
-	$str =~ s/\0/\\\"/g; # замена нулевых символов на экранированные кавычки в исходной строке
-	my $cmm = $str; # приравнивание остатков строки комментарию
-	$cmm =~ s/ #//; # удаление обозначения комментария в начале комментария
-	#//в оригинальной локализации комментарий в строке всегда начинается последовательностью « #»
-	return $tag, $num, $txt, $cmm;
+	return $str =~ m/^ ([^:]+):(\d*) *"(.*?[^\\]?)"(?: *#(.*))?$/;
 }
 
 # функция помощи сортировки для функции модификации карт шрифтов
@@ -1441,27 +1425,27 @@ sub id_to {
 
 =head4 Параметр №2
 
-    $ENC_CP1252CYREU4 # заменить кодовые позиции Unicode на CP1252CYREU4
-    $ENC_CP1252CYRCK2 # заменить кодовые позиции Unicode на CP1252CYRCK2
-    $ENC_CP1251 # заменить кодовые позиции Unicode на CP1251
+    $ENC_CP1252A # заменить кодовые позиции Unicode на CP1252A
+    $ENC_CP1252B # заменить кодовые позиции Unicode на CP1252B
+    $ENC_CP1252C # заменить кодовые позиции Unicode на CP1252C
 
 =cut
 	my $str = shift; # №1
 	my $reg = shift; # №2
 	my @str = split(/=/, $$str, 2);
-	if    ($reg == $ENC_CP1252CYREU4) {
-		if (defined($cp1252cyreu4{$str[1]})) {
-			$str[1] = $cp1252cyreu4{$str[1]}
+	if    ($reg == $ENC_CP1252B) {
+		if (defined($cp1252b{$str[1]})) {
+			$str[1] = $cp1252b{$str[1]}
 		}
 	}
-	elsif ($reg == $ENC_CP1252CYRCK2) {
-		if (defined($cp1252cyrck2{$str[1]})) {
-			$str[1] = $cp1252cyrck2{$str[1]}
+	elsif ($reg == $ENC_CP1252C) {
+		if (defined($cp1252c{$str[1]})) {
+			$str[1] = $cp1252c{$str[1]}
 		}
 	}
-	elsif ($reg == $ENC_CP1251) {
-		if (defined($cp1251{$str[1]})) {
-			$str[1] = $cp1251{$str[1]}
+	elsif ($reg == $ENC_CP1252A) {
+		if (defined($cp1252a{$str[1]})) {
+			$str[1] = $cp1252a{$str[1]}
 		}
 	}
 	$$str = "$str[0]=$str[1]";
