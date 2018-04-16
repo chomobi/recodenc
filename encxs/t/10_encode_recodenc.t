@@ -4,15 +4,15 @@ use Test::More tests => 3;
 use Encode;
 use Encode::Recodenc;
 
-my $se_cp1252cyreu4 = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
-my $sd_cp1252cyreu4 = 'A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷';
+my $se_cp1252a = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
+my $sd_cp1252a = 'ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ';
 
-my $se_cp1252cyrck2 = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
-my $sd_cp1252cyrck2 = 'A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷';
+my $se_cp1252b = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
+my $sd_cp1252b = 'A€B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷';
 
-my $se_cp1252cp1251 = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
-my $sd_cp1252cp1251 = 'ÀÁÂÃÄÅ¨ÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäå¸æçèéêëìíîïðñòóôõö÷øùúûüýþÿ';
+my $se_cp1252c = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
+my $sd_cp1252c = 'A^B‚ƒEË„…†‡KˆMHO‰PCT‹‘X’“”•–—˜™›×a ¢¥¦eë¨©ª«¬®¯°o±pc²³´xµ¶·¸¹º»¼¾÷';
 
-is (decode('cp1252', encode('cp1252cyreu4', $se_cp1252cyreu4)), $sd_cp1252cyreu4, 'CP1252CYREU4: String encoded correctly');
-is (decode('cp1252', encode('cp1252cyrck2', $se_cp1252cyrck2)), $sd_cp1252cyrck2, 'CP1252CYRCK2: String encoded correctly');
-is (decode('cp1252', encode('cp1252cp1251', $se_cp1252cp1251)), $sd_cp1252cp1251, 'CP1252CP1251: String encoded correctly');
+is (decode('cp1252', encode('cp1252a', $se_cp1252a)), $sd_cp1252a, 'CP1252A: String encoded correctly');
+is (decode('cp1252', encode('cp1252b', $se_cp1252b)), $sd_cp1252b, 'CP1252B: String encoded correctly');
+is (decode('cp1252', encode('cp1252c', $se_cp1252c)), $sd_cp1252c, 'CP1252C: String encoded correctly');

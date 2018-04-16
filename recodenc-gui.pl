@@ -81,7 +81,7 @@ binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
 
 *PROGNAME = \'Recodenc';
-*VERSION = \'0.6.2';
+*VERSION = \'0.6.3';
 *LABEL_PADDING = \'3x3';
 
 # загрузка конфигурации
@@ -206,16 +206,16 @@ my $tabs = IUP::Tabs->new(
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::ENC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::ENC_CP1252CYREU4); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::ENC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::ENC_CP1252B); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Транслитерировать', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::ENC_TRANSLIT); return IUP_DEFAULT})
 					]
 				),
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::DEC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::DEC_CP1252CYREU4); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::DEC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::DEC_CP1252B); return IUP_DEFAULT}),
 					]
 				)
 			]
@@ -244,8 +244,8 @@ my $tabs = IUP::Tabs->new(
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1251', ACTION => sub{&w_recodenc_l10n_eu4_lite($Recodenc::ENC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYR', ACTION => sub{&w_recodenc_l10n_eu4_lite($Recodenc::ENC_CP1252CYREU4); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1251', ACTION => sub{&w_recodenc_l10n_eu4_lite($Recodenc::ENC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYR', ACTION => sub{&w_recodenc_l10n_eu4_lite($Recodenc::ENC_CP1252B); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Транслитерировать', ACTION => sub{&w_recodenc_l10n_eu4_lite($Recodenc::ENC_TRANSLIT); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Только тэгы', ACTION => sub{&w_recodenc_l10n_eu4_tags(); return IUP_DEFAULT})
 					]
@@ -299,16 +299,16 @@ my $tabs = IUP::Tabs->new(
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::ENC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::ENC_CP1252CYRCK2); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::ENC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Кодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::ENC_CP1252C); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Транслитерировать', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::ENC_TRANSLIT); return IUP_DEFAULT})
 					]
 				),
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::DEC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::DEC_CP1252CYRCK2); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::DEC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_ck2($Recodenc::DEC_CP1252C); return IUP_DEFAULT}),
 					]
 				)
 			]
@@ -337,8 +337,8 @@ my $tabs = IUP::Tabs->new(
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1251', ACTION => sub{&w_recodenc_l10n_ck2_lite($Recodenc::ENC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYR', ACTION => sub{&w_recodenc_l10n_ck2_lite($Recodenc::ENC_CP1252CYRCK2); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1251', ACTION => sub{&w_recodenc_l10n_ck2_lite($Recodenc::ENC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYR', ACTION => sub{&w_recodenc_l10n_ck2_lite($Recodenc::ENC_CP1252C); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Транслитерировать', ACTION => sub{&w_recodenc_l10n_ck2_lite($Recodenc::ENC_TRANSLIT); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Только тэгы', ACTION => sub{&w_recodenc_l10n_ck2_tags(); return IUP_DEFAULT})
 					]
@@ -367,9 +367,9 @@ my $tabs = IUP::Tabs->new(
 					HOMOGENEOUS => 'YES',
 					child => [
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Очистить', ACTION => sub{&w_recodenc_font($Recodenc::ENC_NULL); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1251', ACTION => sub{&w_recodenc_font($Recodenc::ENC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYREU4', ACTION => sub{&w_recodenc_font($Recodenc::ENC_CP1252CYREU4); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYRCK2', ACTION => sub{&w_recodenc_font($Recodenc::ENC_CP1252CYRCK2); return IUP_DEFAULT})
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1251', ACTION => sub{&w_recodenc_font($Recodenc::ENC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYREU4', ACTION => sub{&w_recodenc_font($Recodenc::ENC_CP1252B); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'CP1252CYRCK2', ACTION => sub{&w_recodenc_font($Recodenc::ENC_CP1252C); return IUP_DEFAULT})
 					]
 				)
 			]
@@ -395,8 +395,8 @@ my $tabs = IUP::Tabs->new(
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Конвертировать (CP1251)', ACTION => sub{&w_recodenc_modexport($Recodenc::ENC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Конвертировать (CP1252CYR)', ACTION => sub{&w_recodenc_modexport($Recodenc::ENC_CP1252CYREU4); return IUP_DEFAULT})
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Конвертировать (CP1251)', ACTION => sub{&w_recodenc_modexport($Recodenc::ENC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Конвертировать (CP1252CYR)', ACTION => sub{&w_recodenc_modexport($Recodenc::ENC_CP1252B); return IUP_DEFAULT})
 					]
 				)
 			]
@@ -422,18 +422,18 @@ my $tabs = IUP::Tabs->new(
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Код. (CP1251)', TIP => 'Кодировать (CP1251)', ACTION => sub{&w_recodenc_plaintext($Recodenc::ENC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Код. (CP1252CYREU4)', TIP => 'Кодировать (CP1252CYREU4)', ACTION => sub{&w_recodenc_plaintext($Recodenc::ENC_CP1252CYREU4); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Код. (CP1252CYRCK2)', TIP => 'Кодировать (CP1252CYRCK2)', ACTION => sub{&w_recodenc_plaintext($Recodenc::ENC_CP1252CYRCK2); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Код. (CP1251)', TIP => 'Кодировать (CP1251)', ACTION => sub{&w_recodenc_plaintext($Recodenc::ENC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Код. (CP1252CYREU4)', TIP => 'Кодировать (CP1252CYREU4)', ACTION => sub{&w_recodenc_plaintext($Recodenc::ENC_CP1252B); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Код. (CP1252CYRCK2)', TIP => 'Кодировать (CP1252CYRCK2)', ACTION => sub{&w_recodenc_plaintext($Recodenc::ENC_CP1252C); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Транслитерировать', ACTION => sub{&w_recodenc_plaintext($Recodenc::ENC_TRANSLIT); return IUP_DEFAULT})
 					]
 				),
 				IUP::Hbox->new(
 					HOMOGENEOUS => 'YES',
 					child => [
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Дек. (CP1251)', TIP => 'Декодировать (CP1251)', ACTION => sub{&w_recodenc_plaintext($Recodenc::DEC_CP1251); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Дек. (CP1252CYREU4)', TIP => 'Декодировать (CP1252CYREU4)', ACTION => sub{&w_recodenc_plaintext($Recodenc::DEC_CP1252CYREU4); return IUP_DEFAULT}),
-						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Дек. (CP1252CYRCK2)', TIP => 'Декодировать (CP1252CYRCK2)', ACTION => sub{&w_recodenc_plaintext($Recodenc::DEC_CP1252CYRCK2); return IUP_DEFAULT})
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Дек. (CP1251)', TIP => 'Декодировать (CP1251)', ACTION => sub{&w_recodenc_plaintext($Recodenc::DEC_CP1252A); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Дек. (CP1252CYREU4)', TIP => 'Декодировать (CP1252CYREU4)', ACTION => sub{&w_recodenc_plaintext($Recodenc::DEC_CP1252B); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Дек. (CP1252CYRCK2)', TIP => 'Декодировать (CP1252CYRCK2)', ACTION => sub{&w_recodenc_plaintext($Recodenc::DEC_CP1252C); return IUP_DEFAULT})
 					]
 				)
 			]

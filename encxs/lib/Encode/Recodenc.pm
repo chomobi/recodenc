@@ -38,9 +38,9 @@ Encode::Recodenc - encodings module for Recodenc
 
     use Encode qw(encode);
     use Encode::Recodenc;
-    $data = encode('cp1252cp1251', $data);
-    $data = encode('cp1252cyrck2', $data);
-    $data = encode('cp1252cyreu4', $data);
+    $data = encode('cp1252a', $data);
+    $data = encode('cp1252b', $data);
+    $data = encode('cp1252c', $data);
 
 =head1 SEE ALSO
 
