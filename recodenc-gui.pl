@@ -81,7 +81,7 @@ binmode(STDOUT, ":encoding(console_out)");
 binmode(STDERR, ":encoding(console_out)");
 
 *PROGNAME = \'Recodenc';
-*VERSION = \'0.6.3';
+*VERSION = \'0.6.4';
 *LABEL_PADDING = \'3x3';
 
 # загрузка конфигурации
@@ -216,6 +216,7 @@ my $tabs = IUP::Tabs->new(
 					child => [
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1251)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::DEC_CP1252A); return IUP_DEFAULT}),
 						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Декодировать (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::DEC_CP1252B); return IUP_DEFAULT}),
+						IUP::Button->new(EXPAND => 'HORIZONTAL', TITLE => 'Восстановить (CP1252CYR)', ACTION => sub{&w_recodenc_l10n_eu4($Recodenc::DEC_CP1252B_R); return IUP_DEFAULT})
 					]
 				)
 			]

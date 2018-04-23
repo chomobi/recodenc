@@ -55,6 +55,7 @@ use vars qw(
 	$ENC_TRANSLIT
 	$DEC_CP1252A
 	$DEC_CP1252B
+	$DEC_CP1252B_R
 	$DEC_CP1252C
 	);
 use parent qw(Exporter);
@@ -80,7 +81,8 @@ use Encode::Recodenc;
 *ENC_TRANSLIT = \4;
 *DEC_CP1252A = \5;
 *DEC_CP1252B = \6;
-*DEC_CP1252C = \7;
+*DEC_CP1252B_R = \7;
+*DEC_CP1252C = \8;
 
 # Примечания к константам:
 # - FL_* — одно пространство имён
@@ -363,6 +365,9 @@ sub l10n_eu4 { # r
 				}
 				elsif ($cpfl == $DEC_CP1252B) {
 					$txt = decode('cp1252b', encode('cp1252', $txt));
+				}
+				elsif ($cpfl == $DEC_CP1252B_R) {
+					$txt = decode_cp1252b_r($txt);
 				}
 				# сохранение строки
 				if (defined($cmm)) {
@@ -1409,6 +1414,68 @@ sub cyr_to_translit {
 	my $str = shift; # №1
 	$$str =~ y(АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя)
 	          (ABVGDEËJZIYKLMNOPRSTUFHQCXÇ’ÎYÊÜÄabvgdeëjziyklmnoprstufhqcxç’îyêüä);
+}
+
+# функция для декодировки CP1252B с восстановлением русской локализации
+sub enc_cp1252b_rus {
+	my $str = shift;
+	$str =~ y(ABCEHKMOPTXaceopx€‚ƒ„…†‡ˆ‰‹‘’“”•–—˜™› ¢¥¦¨©ª«¬®¯°±²³´µ¶·¸¹º»¼¾Ë×ë÷)
+	         (АВСЕНКМОРТХасеорхБГДЖЗИЙЛПУФЦЧШЩЪЫЬЭЮбвгджзийклмнптуфцчшщъыьэюЁЯёя);
+	return $str;
+}
+sub decode_cp1252b_r {
+	my $str = shift;
+	unless ($str) {return ""}
+	my @str;
+	my $wordbuf;
+	my $fl = ''; # £$[
+	my $flp = ''; #paragraph §
+	my $fle = ''; #escape character \
+	@str = $str =~ /\X/g;
+	$str = '';
+	foreach my $ltr (@str) {
+		if ($ltr =~ /[ !"#\$%&'()*+,-.\/0123456789:;<=>?@\[\\\]^_`{|}~¡£¤§½¿]/ || $fl || $flp || $fle) { # _
+			# запись буфера со словом в строку результата
+				if ($wordbuf) {
+					if ($wordbuf =~ /[DFGIJLNQRSUVWYZbdfghijklmnqrstuvwyzŠŒŽšœžŸÀÁÂÃÄÅÆÇÈÉÊÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêìíîïðñòóôõöøùúûüýþÿ]/g || $fl) {
+						$wordbuf = decode('cp1252b', encode('cp1252', $wordbuf))
+					}
+					else {
+						$wordbuf = enc_cp1252b_rus($wordbuf);
+					}
+					$str .= $wordbuf;
+					$wordbuf = '';
+				}
+			# управление флагами
+			if    ($ltr eq '$') {if ($fl eq '$') {$fl = ''} else {$fl = '$'}}
+			if    ($ltr eq '[') {$fl = '['}
+			elsif ($ltr eq ']' && $fl eq '[') {$fl = ''}
+			if    ($ltr eq '£') {if ($fl eq '£') {$fl = ''} else {$fl = '£'}}
+			elsif ($ltr =~ /[ !"#\$%&'()*+,-.\/0123456789:;<=>?@\[\\\]^`{|}~¡£¤§½¿]/ && $fl eq '£') {$fl = ''} # без «_»
+			if    ($ltr eq '§') {$flp = 1}
+			elsif ($ltr eq '!' && $flp) {$flp = ''}
+			elsif (!($ltr =~ /[%*=0-9WBGRbgY+-]/) && $flp) {$flp = ''; goto WC}
+			if    ($fle) {$fle = ''}
+			elsif ($ltr eq '\\') {$fle = 1}
+			# запись текущего символа в строку результата
+			$str .= $ltr;
+		}
+		else {
+			WC:;
+			$wordbuf .= $ltr;
+		}
+	}
+	if ($wordbuf) {
+		if ($wordbuf =~ /[DFGIJLNQRSUVWYZbdfghijklmnqrstuvwyzŠŒŽšœžŸÀÁÂÃÄÅÆÇÈÉÊÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêìíîïðñòóôõöøùúûüýþÿ]/g || $fl) {
+			$wordbuf = decode('cp1252b', encode('cp1252', $wordbuf))
+		}
+		else {
+			$wordbuf = enc_cp1252b_rus($wordbuf);
+		}
+		$str .= $wordbuf;
+		$wordbuf = '';
+	}
+	return $str;
 }
 
 # функция для замены номеров символов в кодировке юникод на номера для других кодировок

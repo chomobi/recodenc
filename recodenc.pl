@@ -43,7 +43,7 @@ binmode(STDERR, ":encoding(console_out)");
 @ARGV = map {decode('locale', $_)} @ARGV;
 
 *PROGNAME = \'Recodenc';
-*VERSION  = \'0.6.3';
+*VERSION  = \'0.6.4';
 *ACTION_ENCODE = \1;
 *ACTION_DECODE = \2;
 *ACTION_TRANSLIT = \3;
@@ -54,7 +54,7 @@ binmode(STDERR, ":encoding(console_out)");
 
 my $mode = 'e';
 my $actn = $ACTION_ENCODE;
-my $encoding = 'cp1252cyreu4';
+my $encoding = 'cp1252cyr';
 my $hv = 0;
 my @dirs;
 
@@ -159,7 +159,7 @@ sub det_enc {
 				die "Задана неверная локализация кодировки CP1252CYR.\n";
 			}
 			else {
-				return $Recodenc::DEC_CP1252B;
+				return $Recodenc::DEC_CP1252B_R;
 			}
 		}
 		elsif ($encoding eq 'cp1252cyrck2') {
@@ -241,7 +241,7 @@ print <<'EOT';
 -t, --translit     Транслитерировать.
 -e, --encoding=cp1252cyr|cp1252cyreu4|cp1252cyrck2|cp1251
                    Устанавливает кодировку.
-                   По умолчанию cp1252cyreu4.
+                   По умолчанию cp1252cyr.
 -g, --tags         Тэгы.
 -c, --clean        Очистить.
 -h, --help         Показать этот текст и завершить выполнение.
@@ -254,7 +254,10 @@ print <<'EOT';
 
 Режим EU4
 Действия: -n|-d|-t. Транслитерация указания кодировки не требует.
-Кодировки: cp1251, cp1252cyr.
+Кодировки: cp1251, cp1252cyr, cp1252cyreu4.
+При указании кодировки cp1252cyreu4 для декодировки происходит
+восстановление русской локализации из кодировки CP1252CYR, вместо
+простого справочного декодирования (cp1252cyr).
 При указании одного каталога изменяются файлы в нём. При указании двух
 каталогов файлы читаются из первого каталога и сохраняются во втором.
 Остальные каталоги отбрасываются.
